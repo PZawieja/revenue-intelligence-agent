@@ -1,0 +1,27 @@
+name: "revenue_intelligence_agent"
+version: "1.0.0"
+config-version: 2
+
+profile: "revenue_intelligence_agent"
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  revenue_intelligence_agent:
+    +materialized: view
+    bronze:
+      +materialized: view
+    silver:
+      +materialized: view
+    gold:
+      +materialized: table
+    semantic:
+      +materialized: table
+    ai:
+      +materialized: view

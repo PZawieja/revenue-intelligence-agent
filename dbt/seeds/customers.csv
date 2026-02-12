@@ -1,0 +1,4 @@
+account_id,account_name,segment,country,owner_ae
+acc_001,Acme GmbH,SMB,DE,piotr
+acc_002,Globex SE,MidMarket,DE,piotr
+acc_003,Initech Ltd,Enterprise,UK,alex

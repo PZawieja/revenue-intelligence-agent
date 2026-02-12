@@ -1,0 +1,7 @@
+revenue_intelligence_agent:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: ../duckdb/revenue_intel.duckdb
+      schema: main

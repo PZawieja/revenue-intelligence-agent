@@ -1,0 +1,7 @@
+account_id,invoice_id,invoice_date,amount_eur,paid
+acc_001,inv_001,2025-12-01,1200,true
+acc_001,inv_002,2026-01-01,1200,true
+acc_002,inv_003,2025-12-15,4200,true
+acc_002,inv_004,2026-01-15,4200,false
+acc_003,inv_005,2025-12-01,15000,true
+acc_003,inv_006,2026-01-01,15000,true

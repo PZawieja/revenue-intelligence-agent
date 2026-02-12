@@ -1,0 +1,6 @@
+account_id,ticket_id,created_date,severity,status
+acc_001,t_001,2026-01-25,low,closed
+acc_001,t_002,2026-02-02,medium,open
+acc_002,t_003,2026-01-18,high,closed
+acc_002,t_004,2026-01-28,high,open
+acc_003,t_005,2026-01-12,low,closed
