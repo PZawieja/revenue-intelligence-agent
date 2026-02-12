@@ -11,6 +11,22 @@ DB_PATH = "duckdb/revenue_intel.duckdb"
 def stub_llm(question: str):
     q = question.lower()
 
+    if "expand" in q or "expansion" in q or "upsell" in q:
+        return {
+            "intent": "expansion_potential",
+            "params": {
+                "account_name": "Acme GmbH"
+            }
+        }
+
+    if "health" in q or "risk" in q:
+        return {
+            "intent": "health_summary",
+            "params": {
+                "account_name": "Acme GmbH"
+            }
+        }
+
     if "overview" in q or "tell me about" in q:
         return {
             "intent": "account_overview",
@@ -52,3 +68,5 @@ def run(question: str):
 
 if __name__ == "__main__":
     run("Give me overview for Acme GmbH")
+    run("Is Acme healthy?")
+    run("What is the expansion potential for Acme?")
