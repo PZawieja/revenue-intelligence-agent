@@ -16,6 +16,8 @@ from scripts.ai_question_packs import (
     FOLLOWUP_SUGGESTIONS,
 )
 from scripts.ui_theme import inject_css, CONTRAST_AUDIT
+from scripts.sql_guardrails import compute_guardrails
+from scripts.response_format import format_response
 
 DB_PATH = "duckdb/revenue_intel.duckdb"
 
@@ -288,12 +290,11 @@ if "messages" not in st.session_state:
             "role": "assistant",
             "content": {
                 "title": "Welcome",
-                "bullets": [
-                    "Ask about account overview, health, or expansion.",
-                    "Use the default account if you omit a name.",
-                ],
-                "so_what": "Start with an account overview to get context.",
                 "kpis": [],
+                "summary": "Ask about account overview, health, or expansion. Use the default account if you omit a name.",
+                "key_points": [],
+                "next_best_action": "Start with an account overview to get context.",
+                "talk_track": None,
                 "followups": [],
             },
         }
@@ -360,29 +361,37 @@ for msg in st.session_state.messages:
         content = msg.get("content", {})
         if isinstance(content, dict):
             title = content.get("title", "Answer")
-            bullets = content.get("bullets", [])
-            so_what = content.get("so_what", "Use this summary to decide the next best action.")
             kpis = content.get("kpis", [])
+            summary = content.get("summary", "")
+            key_points = content.get("key_points", [])
+            next_best_action = content.get("next_best_action", "")
+            talk_track = content.get("talk_track")
+            followups = content.get("followups", [])
         else:
             title = str(content)
-            bullets = []
-            so_what = "Use this summary to decide the next best action."
             kpis = []
+            summary = ""
+            key_points = []
+            next_best_action = "Use this summary to decide the next best action."
+            talk_track = None
+            followups = []
         ev = st.session_state.evidence_by_msg_id.get(msg_id, {})
         header_title = title
+        persona = st.session_state.get("persona", "Customer Success")
 
         st.markdown("<div class='answer-card'>", unsafe_allow_html=True)
-        header_cols = st.columns([0.78, 0.22])
+        header_cols = st.columns([0.76, 0.24])
         with header_cols[0]:
-            st.markdown(f"<div class='answer-title'>{header_title}</div>", unsafe_allow_html=True)
+            st.markdown(
+                f"<div class='answer-title'>{header_title} <span class='badge-governed'>Governed SQL</span></div>",
+                unsafe_allow_html=True,
+            )
         with header_cols[1]:
-            has_details = bool(ev.get("sql") or ev.get("df") is not None or ev.get("definitions"))
-            if has_details:
-                is_open = st.session_state.details_open.get(msg_id, False)
-                label = "Details ▴" if is_open else "Details ▾"
-                if st.button(label, key=f"details_toggle_{msg_id}", type="secondary"):
-                    st.session_state.details_open[msg_id] = not is_open
-                    st.rerun()
+            is_open = st.session_state.details_open.get(msg_id, False)
+            label = "Evidence ▴" if is_open else "Evidence ▾"
+            if st.button(label, key=f"details_toggle_{msg_id}", type="secondary"):
+                st.session_state.details_open[msg_id] = not is_open
+                st.rerun()
 
         if kpis:
             chips_html = "".join(
@@ -393,22 +402,29 @@ for msg in st.session_state.messages:
             )
             st.markdown(f"<div class='kpi-row'>{chips_html}</div>", unsafe_allow_html=True)
 
-        bullets_html = "".join([f"<li>{b}</li>" for b in bullets[:4]])
-        if bullets_html:
-            st.markdown(f"<ul class='answer-list'>{bullets_html}</ul>", unsafe_allow_html=True)
-        else:
-            st.markdown("<div class='answer-muted'>No summary available.</div>", unsafe_allow_html=True)
-
-        st.markdown(f"<div class='so-what'>{so_what}</div>", unsafe_allow_html=True)
-
-        followups = content.get("followups", [])
-        if followups:
+        if summary:
+            st.markdown(f"<div class='answer-summary'>{summary}</div>", unsafe_allow_html=True)
+        key_points_html = "".join([f"<li>{b}</li>" for b in key_points[:3]])
+        if key_points_html:
+            st.markdown(f"<ul class='answer-list'>{key_points_html}</ul>", unsafe_allow_html=True)
+        if next_best_action:
             st.markdown(
-                "<div class='suggestion-label'>Suggested next questions</div>",
+                f"<div class='next-best-action'><strong>Next best action</strong> {next_best_action}</div>",
                 unsafe_allow_html=True,
             )
+        if talk_track and persona == "Customer Success":
+            st.markdown(
+                f"<div class='talk-track'>What to say: “{talk_track}”</div>",
+                unsafe_allow_html=True,
+            )
+        if followups:
+            if len(followups) > 1:
+                st.markdown(
+                    "<div class='suggestion-label'>Suggested next questions</div>",
+                    unsafe_allow_html=True,
+                )
             st.markdown("<div class='suggestion-row'>", unsafe_allow_html=True)
-            for s_idx, q in enumerate(followups[:4]):
+            for s_idx, q in enumerate(followups[:3]):
                 if st.button(q, key=f"sugg_{msg_id}_{s_idx}"):
                     st.session_state["queued_question"] = q
                     st.session_state.has_interacted = True
@@ -418,19 +434,54 @@ for msg in st.session_state.messages:
         if st.session_state.details_open.get(msg_id, False):
             st.markdown("<div class='details-section'>", unsafe_allow_html=True)
             tab = st.radio(
-                "Details",
-                ["Results", "SQL", "Definitions", "Debug"],
+                "Evidence",
+                ["Data", "SQL", "Definitions", "Debug"],
                 key=f"tabs_{msg_id}",
                 horizontal=True,
                 label_visibility="collapsed",
             )
-            if tab == "Results":
+            if tab == "Data":
                 df = ev.get("df")
                 if df is not None and not df.empty:
                     st.dataframe(df.head(15), height=260, use_container_width=True)
                 else:
                     st.markdown("No rows returned.")
             elif tab == "SQL":
+                guardrails = ev.get("guardrails", {})
+                if guardrails:
+                    issues = []
+                    select_ok = guardrails.get("select_only", False)
+                    allow_ok = guardrails.get("allowlisted_assets", False)
+                    limit_ok = guardrails.get("row_limit_present", False)
+                    pii_ok = guardrails.get("no_pii_columns", False)
+                    blocked = guardrails.get("blocked_keywords_found", [])
+                    if select_ok:
+                        st.markdown("✅ Select-only query")
+                    else:
+                        st.markdown("⚠️ Non-select keywords detected")
+                    if allow_ok:
+                        st.markdown("✅ Uses allowlisted tables")
+                    else:
+                        tables = guardrails.get("tables_used", [])
+                        st.markdown(f"⚠️ Non-allowlisted tables: {', '.join(tables) if tables else 'none'}")
+                    if limit_ok:
+                        limit_val = guardrails.get("row_limit_value")
+                        suffix = f"(LIMIT {limit_val})" if limit_val is not None else "(LIMIT)"
+                        st.markdown(f"✅ Row limit enforced {suffix}")
+                    else:
+                        st.markdown("⚠️ No LIMIT clause found")
+                    if pii_ok:
+                        st.markdown("✅ No PII columns selected")
+                    else:
+                        st.markdown("⚠️ Potential PII columns detected")
+                    if blocked:
+                        st.markdown(f"⚠️ Blocked keywords: {', '.join(blocked)}")
+                    rows = guardrails.get("result_rows", 0)
+                    cols = guardrails.get("result_cols", 0)
+                    st.markdown(
+                        f"<div class='guardrail-meta'>Returned: {rows} rows × {cols} columns</div>",
+                        unsafe_allow_html=True,
+                    )
                 if st.button("Copy SQL", key=f"copy-sql-{msg_id}", type="secondary"):
                     st.toast("SQL ready to copy from below.")
                 st.code(ev.get("sql", ""), language="sql")
@@ -505,15 +556,20 @@ if question:
 
     if "error" in result:
         assistant_id = new_msg_id("asst")
+        guardrails = {}
+        if result.get("sql"):
+            guardrails = compute_guardrails(result.get("sql", ""), allowed_assets, (0, 0))
         st.session_state.messages.append(
             {
                 "id": assistant_id,
                 "role": "assistant",
                 "content": {
                     "title": "Something went wrong",
-                    "bullets": [str(result["error"])],
-                    "so_what": "Use this summary to decide the next best action.",
                     "kpis": [],
+                    "summary": str(result["error"]),
+                    "key_points": [],
+                    "next_best_action": "Check the query or try a different question.",
+                    "talk_track": None,
                     "followups": [],
                 },
             }
@@ -528,6 +584,7 @@ if question:
                 "row_count": 0,
                 "runtime_ms": result.get("runtime_ms", 0),
             },
+            "guardrails": guardrails,
             "intent": intent,
             "account_name": account_name,
             "row0": {},
@@ -539,36 +596,23 @@ if question:
         if rows and intent in INTERPRETERS:
             row0 = dict(zip(cols, rows[0]))
             interpretation = INTERPRETERS[intent](row0)
-            bullets = interpretation.get("bullets") or interpretation.get("summary_bullets", [])
-            bullets = bullets[:4]
             df = to_dataframe(cols, rows)
-            title_map = {
-                "account_overview": "Account overview",
-                "health_summary": "Health summary",
-                "expansion_potential": "Expansion potential",
-            }
-            title = title_map.get(intent, "Answer")
-            title = f"{title} — {account_name}" if account_name else title
-            base_suggestions = FOLLOWUP_SUGGESTIONS.get(intent, [])
-            persona_pack = PERSONA_QUESTION_PACKS.get(st.session_state.persona, [])
-            followups = [q for q in base_suggestions if q in persona_pack]
-            if len(followups) < 4:
-                for q in persona_pack:
-                    if q not in followups:
-                        followups.append(q)
-                    if len(followups) >= 4:
-                        break
-            content = {
-                "title": title,
-                "bullets": bullets,
-                "so_what": build_so_what(intent, df),
-                "kpis": build_kpis(intent, df),
-                "followups": followups[:4],
-            }
+            kpis = build_kpis(intent, df)
+            raw_result = {"row0": row0, "interpretation": interpretation, "df": df}
+            persona = st.session_state.get("persona", "Customer Success")
+            content = format_response(
+                intent,
+                raw_result,
+                persona,
+                account_name,
+                kpis,
+                current_question=question,
+            )
             assistant_id = new_msg_id("asst")
             st.session_state.messages.append(
                 {"id": assistant_id, "role": "assistant", "content": content}
             )
+            guardrails = compute_guardrails(result["sql"], allowed_assets, (len(df), len(df.columns)))
             st.session_state.evidence_by_msg_id[assistant_id] = {
                 "df": df,
                 "sql": result["sql"],
@@ -579,6 +623,7 @@ if question:
                     "row_count": len(rows),
                     "runtime_ms": result.get("runtime_ms", 0),
                 },
+                "guardrails": guardrails,
                 "intent": intent,
                 "account_name": account_name,
                 "row0": row0,
@@ -593,14 +638,17 @@ if question:
                     "role": "assistant",
                     "content": {
                         "title": "No results",
-                        "bullets": ["No rows matched this question."],
-                        "so_what": "Use this summary to decide the next best action.",
                         "kpis": [],
+                        "summary": "No rows matched this question.",
+                        "key_points": [],
+                        "next_best_action": "Try another account or question.",
+                        "talk_track": None,
                         "followups": [],
                     },
                 }
             )
             df = to_dataframe(cols, rows) if rows else None
+            guardrails = compute_guardrails(result["sql"], allowed_assets, (len(rows), len(cols)))
             st.session_state.evidence_by_msg_id[assistant_id] = {
                 "df": df,
                 "sql": result["sql"],
@@ -611,6 +659,7 @@ if question:
                     "row_count": len(rows),
                     "runtime_ms": result.get("runtime_ms", 0),
                 },
+                "guardrails": guardrails,
                 "intent": intent,
                 "account_name": account_name,
                 "row0": {},

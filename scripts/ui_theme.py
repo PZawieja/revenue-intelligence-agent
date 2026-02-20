@@ -455,6 +455,17 @@ button[data-baseweb="button"]:not([kind="primary"]):disabled,
   margin-bottom: 6px;
   color: var(--ri-text);
 }}
+.badge-governed {{
+  background: var(--ri-surface-2);
+  border: 1px solid var(--ri-border);
+  color: var(--ri-text-muted);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 6px;
+  display: inline-block;
+}}
 .answer-muted {{
   color: var(--ri-text-muted);
 }}
@@ -462,6 +473,33 @@ button[data-baseweb="button"]:not([kind="primary"]):disabled,
   color: var(--ri-text-muted);
   font-size: 13px;
   margin-top: 8px;
+}}
+.answer-summary {{
+  color: var(--ri-text);
+  font-size: 0.95rem;
+  margin: 6px 0 8px 0;
+  line-height: 1.4;
+}}
+.next-best-action {{
+  color: var(--ri-text);
+  font-size: 13px;
+  margin-top: 10px;
+  padding: 8px 0;
+}}
+.next-best-action strong {{
+  color: var(--ri-text);
+}}
+.talk-track {{
+  color: var(--ri-text-muted);
+  font-size: 12.5px;
+  font-style: italic;
+  margin-top: 6px;
+  padding: 6px 0;
+}}
+.guardrail-meta {{
+  color: var(--ri-text-muted);
+  font-size: 13px;
+  margin-top: 6px;
 }}
 .answer-list {{
   margin: 8px 0 6px 18px;
