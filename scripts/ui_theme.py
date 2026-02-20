@@ -124,6 +124,17 @@ button[title*="sidebar"] svg {{
   color: var(--ri-text) !important;
   opacity: 1 !important;
 }}
+button[aria-label="Expand sidebar"],
+button[aria-label="Collapse sidebar"] {{
+  background: var(--ri-surface) !important;
+  border: 1px solid var(--ri-border) !important;
+  color: var(--ri-text) !important;
+}}
+button[aria-label="Expand sidebar"] svg,
+button[aria-label="Collapse sidebar"] svg {{
+  fill: var(--ri-text) !important;
+  color: var(--ri-text) !important;
+}}
 
 /* Labels, inputs */
 label {{
@@ -400,6 +411,34 @@ div[data-baseweb="tab-list"] button {{
   padding: 0.35rem 0.75rem !important;
 }}
 
+/* Details segmented control (radio) */
+[data-testid="stRadio"] {{
+  background: transparent !important;
+}}
+[data-testid="stRadio"] * {{
+  color: var(--ri-text) !important;
+}}
+[data-testid="stRadio"] div[role="radiogroup"] {{
+  background: var(--ri-surface-2) !important;
+  border: 1px solid var(--ri-border) !important;
+  border-radius: 999px !important;
+  padding: 4px !important;
+  gap: 4px !important;
+}}
+[data-testid="stRadio"] label {{
+  margin: 0 !important;
+}}
+[data-testid="stRadio"] div[role="radio"] {{
+  background: var(--ri-surface) !important;
+  border: 1px solid var(--ri-border) !important;
+  border-radius: 999px !important;
+  padding: 4px 10px !important;
+}}
+[data-testid="stRadio"] input:checked + div {{
+  background: var(--ri-surface) !important;
+  border-color: var(--ri-border) !important;
+}}
+
 /* Expanders and debug labels */
 div[data-testid="stExpander"] summary {{
   color: var(--ri-text) !important;
@@ -423,6 +462,16 @@ code, pre, .stCodeBlock, [data-testid="stCodeBlock"] {{
   border-radius: 10px !important;
   border: 1px solid var(--ri-border) !important;
   font-size: 0.85rem !important;
+}}
+
+/* Dataframe surface */
+div[data-testid="stDataFrame"] {{
+  background: var(--ri-surface) !important;
+  border: 1px solid var(--ri-border) !important;
+  border-radius: 12px !important;
+}}
+div[data-testid="stDataFrame"] * {{
+  color: var(--ri-text) !important;
 }}
 
 /* Chat bubbles + badges */

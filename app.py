@@ -1,4 +1,5 @@
 import time
+import uuid
 
 import duckdb
 import pandas as pd
@@ -185,12 +186,20 @@ with st.sidebar:
         st.session_state.pop("details_open", None)
         st.rerun()
 
+def new_msg_id(prefix: str) -> str:
+    return f"{prefix}_{uuid.uuid4().hex}"
+
+
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Hi! Ask me about a customer (overview, health, expansion)."}
+        {
+            "id": new_msg_id("asst"),
+            "role": "assistant",
+            "content": "Hi! Ask me about a customer (overview, health, expansion).",
+        }
     ]
-if "evidence" not in st.session_state:
-    st.session_state.evidence = {}
+if "evidence_by_msg_id" not in st.session_state:
+    st.session_state.evidence_by_msg_id = {}
 if "details_open" not in st.session_state:
     st.session_state.details_open = {}
 
@@ -219,12 +228,13 @@ if show_quick:
                             st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
 
-last_assistant_idx = None
-for i, m in enumerate(st.session_state.messages):
+last_assistant_id = None
+for m in st.session_state.messages:
     if m["role"] == "assistant":
-        last_assistant_idx = i
+        last_assistant_id = m.get("id")
 
-for idx, msg in enumerate(st.session_state.messages):
+for msg in st.session_state.messages:
+    msg_id = msg.get("id")
     if msg["role"] == "user":
         with st.chat_message("user"):
             st.markdown("<div class='message-row'>", unsafe_allow_html=True)
@@ -238,7 +248,7 @@ for idx, msg in enumerate(st.session_state.messages):
 
     with st.chat_message("assistant"):
         title, bullets, narrative = parse_summary(msg["content"])
-        ev = st.session_state.evidence.get(idx, {})
+        ev = st.session_state.evidence_by_msg_id.get(msg_id, {})
         account_name = ev.get("account_name", "")
         intent_titles = {
             "account_overview": "Account overview",
@@ -253,12 +263,12 @@ for idx, msg in enumerate(st.session_state.messages):
         with header_cols[0]:
             st.markdown(f"<div class='answer-title'>{header_title}</div>", unsafe_allow_html=True)
         with header_cols[1]:
-            has_details = bool(ev.get("sql") or ev.get("rows") or ev.get("definitions"))
+            has_details = bool(ev.get("sql") or ev.get("df") is not None or ev.get("definitions"))
             if has_details:
-                is_open = st.session_state.details_open.get(idx, False)
+                is_open = st.session_state.details_open.get(msg_id, False)
                 label = "Details ▴" if is_open else "Details ▾"
-                if st.button(label, key=f"details-toggle-{idx}", type="secondary"):
-                    st.session_state.details_open[idx] = not is_open
+                if st.button(label, key=f"details_toggle_{msg_id}", type="secondary"):
+                    st.session_state.details_open[msg_id] = not is_open
                     st.rerun()
 
         chips = build_kpi_chips(ev.get("intent", ""), ev.get("row0", {}))
@@ -277,7 +287,7 @@ for idx, msg in enumerate(st.session_state.messages):
         if narrative:
             st.markdown(f"<div class='answer-muted'>{narrative}</div>", unsafe_allow_html=True)
 
-        if idx == last_assistant_idx and ev.get("intent"):
+        if msg_id == last_assistant_id and ev.get("intent"):
             base_suggestions = FOLLOWUP_SUGGESTIONS.get(ev.get("intent", ""), [])
             persona_pack = PERSONA_QUESTION_PACKS.get(st.session_state.persona, [])
             suggestions = [q for q in base_suggestions if q in persona_pack]
@@ -290,41 +300,44 @@ for idx, msg in enumerate(st.session_state.messages):
             if suggestions:
                 st.markdown("<div class='pill'>", unsafe_allow_html=True)
                 for s_idx, q in enumerate(suggestions[:4]):
-                    if st.button(q, key=f"suggest-{idx}-{s_idx}-{abs(hash(q))}"):
+                    if st.button(q, key=f"suggest-{msg_id}-{s_idx}-{abs(hash(q))}"):
                         st.session_state["queued_question"] = q
                         st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
 
-        if st.session_state.details_open.get(idx, False):
+        if st.session_state.details_open.get(msg_id, False):
             st.markdown("<div class='details-section'>", unsafe_allow_html=True)
-            tabs = st.tabs(["Results", "SQL", "Definitions", "Debug"])
-            with tabs[0]:
-                rows = ev.get("rows", [])
-                if rows:
-                    st.dataframe(
-                        to_dataframe(ev["cols"], rows[:15]),
-                        height=240,
-                        use_container_width=True,
-                    )
+            tab = st.radio(
+                "Details",
+                ["Results", "SQL", "Definitions", "Debug"],
+                key=f"tabs_{msg_id}",
+                horizontal=True,
+                label_visibility="collapsed",
+            )
+            if tab == "Results":
+                df = ev.get("df")
+                if df is not None and not df.empty:
+                    st.dataframe(df.head(15), height=260, use_container_width=True)
                 else:
                     st.markdown("No rows returned.")
-            with tabs[1]:
-                if st.button("Copy SQL", key=f"copy-sql-{idx}", type="secondary"):
+            elif tab == "SQL":
+                if st.button("Copy SQL", key=f"copy-sql-{msg_id}", type="secondary"):
                     st.toast("SQL ready to copy from below.")
                 st.code(ev.get("sql", ""), language="sql")
-            with tabs[2]:
+            elif tab == "Definitions":
                 definitions = ev.get("definitions", [])
                 if definitions:
                     for item in definitions:
                         st.markdown(f"- {item}")
                 else:
                     st.markdown("No definitions available.")
-            with tabs[3]:
-                intent = ev.get("intent", "")
-                st.markdown(f"- Intent: `{intent}`")
-                st.markdown(f"- Asset: `{INTENT_ASSET.get(intent, '')}`")
-                st.markdown(f"- Row count: {len(ev.get('rows', []))}")
-                st.markdown(f"- Runtime: {ev.get('runtime_ms', 0)} ms")
+            elif tab == "Debug":
+                debug = ev.get("debug", {})
+                if isinstance(debug, dict):
+                    for k, v in debug.items():
+                        st.markdown(f"- {k}: {v}")
+                else:
+                    st.markdown(str(debug) if debug else "No debug info.")
             st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("</div>", unsafe_allow_html=True)
@@ -336,7 +349,8 @@ question = st.chat_input(
 if not question and st.session_state.get("queued_question"):
     question = st.session_state.pop("queued_question")
 if question:
-    st.session_state.messages.append({"role": "user", "content": question})
+    user_id = new_msg_id("user")
+    st.session_state.messages.append({"id": user_id, "role": "user", "content": question})
     with st.spinner("Thinking…"):
         con = duckdb.connect(DB_PATH)
         allowed_assets = get_allowed_assets(con)
@@ -347,18 +361,25 @@ if question:
         result = run_intent(con, allowed_assets, intent, account_name)
 
     if "error" in result:
-        st.session_state.messages.append({"role": "assistant", "content": f"❌ {result['error']}"})
-        assistant_index = len(st.session_state.messages) - 1
-        st.session_state.evidence[assistant_index] = {
+        assistant_id = new_msg_id("asst")
+        st.session_state.messages.append(
+            {"id": assistant_id, "role": "assistant", "content": f"❌ {result['error']}"}
+        )
+        st.session_state.evidence_by_msg_id[assistant_id] = {
+            "df": None,
+            "sql": result.get("sql", ""),
+            "definitions": [],
+            "debug": {
+                "intent": intent,
+                "asset": INTENT_ASSET.get(intent, ""),
+                "row_count": 0,
+                "runtime_ms": result.get("runtime_ms", 0),
+            },
             "intent": intent,
             "account_name": account_name,
-            "sql": result.get("sql", ""),
-            "cols": [],
-            "rows": [],
-            "definitions": [],
             "row0": {},
-            "runtime_ms": result.get("runtime_ms", 0),
         }
+        st.session_state.details_open[assistant_id] = False
         st.rerun()
     else:
         cols, rows = result["cols"], result["rows"]
@@ -378,38 +399,48 @@ if question:
                 summary_lines.append(f"- {b}")
             if narrative:
                 summary_lines.append(narrative)
+            assistant_id = new_msg_id("asst")
             st.session_state.messages.append(
-                {"role": "assistant", "content": "\n".join(summary_lines)}
+                {"id": assistant_id, "role": "assistant", "content": "\n".join(summary_lines)}
             )
-            assistant_index = len(st.session_state.messages) - 1
-            st.session_state.evidence[assistant_index] = {
+            df = to_dataframe(cols, rows)
+            st.session_state.evidence_by_msg_id[assistant_id] = {
+                "df": df,
+                "sql": result["sql"],
+                "definitions": interpretation.get("definitions", []),
+                "debug": {
+                    "intent": intent,
+                    "asset": INTENT_ASSET.get(intent, ""),
+                    "row_count": len(rows),
+                    "runtime_ms": result.get("runtime_ms", 0),
+                },
                 "intent": intent,
                 "account_name": account_name,
-                "sql": result["sql"],
-                "cols": cols,
-                "rows": rows,
-                "definitions": interpretation.get("definitions", []),
-                "warnings": interpretation.get("warnings", []),
                 "row0": row0,
-                "runtime_ms": result.get("runtime_ms", 0),
             }
+            st.session_state.details_open[assistant_id] = False
             st.rerun()
         else:
+            assistant_id = new_msg_id("asst")
             st.session_state.messages.append(
-                {"role": "assistant", "content": "No results found for this question."}
+                {"id": assistant_id, "role": "assistant", "content": "No results found for this question."}
             )
-            assistant_index = len(st.session_state.messages) - 1
-            st.session_state.evidence[assistant_index] = {
+            df = to_dataframe(cols, rows) if rows else None
+            st.session_state.evidence_by_msg_id[assistant_id] = {
+                "df": df,
+                "sql": result["sql"],
+                "definitions": [],
+                "debug": {
+                    "intent": intent,
+                    "asset": INTENT_ASSET.get(intent, ""),
+                    "row_count": len(rows),
+                    "runtime_ms": result.get("runtime_ms", 0),
+                },
                 "intent": intent,
                 "account_name": account_name,
-                "sql": result["sql"],
-                "cols": cols,
-                "rows": rows,
-                "definitions": [],
-                "warnings": [],
                 "row0": {},
-                "runtime_ms": result.get("runtime_ms", 0),
             }
+            st.session_state.details_open[assistant_id] = False
             st.rerun()
 
 st.markdown("</div>", unsafe_allow_html=True)
