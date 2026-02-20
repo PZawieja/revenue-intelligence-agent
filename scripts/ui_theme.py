@@ -5,7 +5,7 @@ import streamlit as st
 # - If a component background is primary, use text_on_primary.
 # - Default surfaces use text.
 
-CONTRAST_AUDIT = True
+CONTRAST_AUDIT = False
 
 THEME = {
     "bg": "#F7F8FA",
@@ -44,14 +44,42 @@ html, body, [data-testid="stAppViewContainer"] {{
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
   color-scheme: light;
 }}
+[data-testid="stApp"] {{
+  background: var(--ri-bg);
+}}
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+footer {{
+  background: var(--ri-bg) !important;
+  color: var(--ri-text) !important;
+}}
 
 [data-testid="stHeader"] {{
   background: transparent;
 }}
 
 .app-container {{
-  max-width: 1100px;
+  max-width: 980px;
   margin: 0 auto;
+}}
+
+/* Chat feed container */
+[data-testid="stChatMessage"] {{
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-bottom: 8px;
+}}
+.message-row {{
+  max-width: 720px;
+}}
+
+.workspace-card {{
+  background: var(--ri-surface);
+  border: 1px solid var(--ri-border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
 }}
 
 h1, h2, h3, h4, h5 {{
@@ -134,6 +162,21 @@ button[kind="primary"] {{
 button[kind="primary"]:hover {{
   background: var(--ri-primary-hover) !important;
 }}
+.stButton > button[kind="secondary"],
+button[kind="secondary"] {{
+  background: transparent !important;
+  color: var(--ri-text-muted) !important;
+  border: none !important;
+  padding: 0.15rem 0.3rem !important;
+  font-weight: 600 !important;
+  font-size: 0.8rem !important;
+}}
+.stButton > button[kind="secondary"]:hover,
+button[kind="secondary"]:hover {{
+  background: var(--ri-surface-2) !important;
+  color: var(--ri-text) !important;
+}}
+
 /* Global button overrides */
 .stButton > button:not([kind="primary"]),
 button[data-baseweb="button"]:not([kind="primary"]),
@@ -204,9 +247,35 @@ button[data-baseweb="button"]:not([kind="primary"]):disabled,
   border: 1px solid var(--ri-border) !important;
   color: var(--ri-text) !important;
   border-radius: 999px !important;
-  padding: 0.35rem 0.7rem !important;
+  padding: 0.3rem 0.65rem !important;
   font-weight: 600 !important;
-  font-size: 0.85rem !important;
+  font-size: 0.82rem !important;
+}}
+.pill .stButton > button:hover {{
+  background: var(--ri-surface-2) !important;
+}}
+.pill {{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}}
+
+/* Chips */
+.chip-row {{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0 12px 0;
+}}
+.chip {{
+  background: var(--ri-surface-2);
+  color: var(--ri-text);
+  border: 1px solid var(--ri-border);
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 0.78rem;
+  font-weight: 600;
 }}
 
 /* Answer card */
@@ -214,24 +283,113 @@ button[data-baseweb="button"]:not([kind="primary"]):disabled,
   background: var(--ri-surface);
   border: 1px solid var(--ri-border);
   border-radius: 16px;
-  padding: 18px 20px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-}}
-.answer-label {{
-  font-size: 0.75rem;
-  color: var(--ri-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 6px;
+  padding: 14px 16px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  max-width: 720px;
+  margin-bottom: 8px;
 }}
 .answer-title {{
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 600;
   margin-bottom: 6px;
   color: var(--ri-text);
 }}
 .answer-muted {{
   color: var(--ri-text-muted);
+}}
+.answer-list {{
+  margin: 8px 0 6px 18px;
+}}
+.details-section {{
+  border-top: 1px solid var(--ri-border);
+  margin-top: 12px;
+  padding-top: 10px;
+}}
+
+.kpi-row {{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 6px 0 10px 0;
+}}
+
+.chip {{
+  background: var(--ri-surface-2);
+  color: var(--ri-text);
+  border: 1px solid var(--ri-border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}}
+
+.kv-card {{
+  background: var(--ri-surface);
+  border: 1px solid var(--ri-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}}
+.kv-key {{
+  font-size: 0.75rem;
+  color: var(--ri-text-muted);
+  margin-bottom: 4px;
+}}
+.kv-value {{
+  font-size: 0.95rem;
+  color: var(--ri-text);
+  font-weight: 600;
+}}
+
+.chip-green {{
+  background: #EAF7EF;
+  border-color: #DCEFE4;
+  color: #167A3E;
+}}
+.chip-yellow {{
+  background: #FFF6E6;
+  border-color: #FCE8C7;
+  color: #8A5A14;
+}}
+.chip-red {{
+  background: #FCEEEE;
+  border-color: #F7D9D9;
+  color: #9A2A2A;
+}}
+.chip-high {{
+  background: #EAF7EF;
+  border-color: #DCEFE4;
+  color: #167A3E;
+}}
+.chip-medium {{
+  background: #FFF6E6;
+  border-color: #FCE8C7;
+  color: #8A5A14;
+}}
+.chip-low {{
+  background: #FCEEEE;
+  border-color: #F7D9D9;
+  color: #9A2A2A;
+}}
+
+/* Avatar badges */
+.badge {{
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}}
+.badge-bot {{
+  background: var(--ri-primary);
+  color: var(--ri-text-on-primary);
+}}
+.badge-human {{
+  background: var(--ri-surface-2);
+  color: var(--ri-text);
 }}
 
 /* Tabs */
@@ -245,10 +403,21 @@ div[data-baseweb="tab-list"] button {{
 /* Expanders and debug labels */
 div[data-testid="stExpander"] summary {{
   color: var(--ri-text) !important;
+  background: var(--ri-surface) !important;
+  border: 1px solid var(--ri-border) !important;
+  border-radius: 12px !important;
+  padding: 8px 10px !important;
+}}
+div[data-testid="stExpander"] {{
+  background: transparent !important;
+}}
+div[data-testid="stExpander"] > details {{
+  background: transparent !important;
+  border: none !important;
 }}
 
 /* Code blocks */
-code, pre {{
+code, pre, .stCodeBlock, [data-testid="stCodeBlock"] {{
   color: var(--ri-text) !important;
   background: var(--ri-surface) !important;
   border-radius: 10px !important;
@@ -256,31 +425,74 @@ code, pre {{
   font-size: 0.85rem !important;
 }}
 
+/* Chat bubbles + badges */
+.chat-bubble {{
+  background: var(--ri-surface-2);
+  border: 1px solid var(--ri-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  max-width: 720px;
+}}
+.chat-bubble-user {{
+  background: var(--ri-surface-2);
+  border-radius: 14px;
+}}
+
+.executed-sql {{
+  color: var(--ri-text-muted);
+  font-size: 0.8rem;
+  margin-top: 6px;
+}}
+.badge {{
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}}
+.badge-bot {{
+  background: var(--ri-primary);
+  color: var(--ri-text-on-primary);
+}}
+.badge-human {{
+  background: var(--ri-surface-2);
+  color: var(--ri-text);
+}}
+
 /* Chat input */
 [data-testid="stChatInput"] {{
   background: var(--ri-bg) !important;
-  border-top: 1px solid var(--ri-border) !important;
+  border-top: none !important;
+}}
+[data-testid="stChatInput"] * {{
+  background: var(--ri-bg) !important;
+}}
+[data-testid="stChatInput"] textarea:focus {{
+  box-shadow: none !important;
+}}
+
+/* Bottom container strip */
+[data-testid="stBottom"] {{
+  background: var(--ri-bg) !important;
+  border-top: none !important;
+}}
+[data-testid="stBottomBlockContainer"] {{
+  background: var(--ri-bg) !important;
+}}
+[data-testid="stBottomBlockContainer"] * {{
+  background: var(--ri-bg) !important;
 }}
 [data-testid="stChatInput"] textarea {{
   background: var(--ri-surface) !important;
   color: var(--ri-text) !important;
   border: 1px solid var(--ri-border) !important;
+  border-radius: 12px !important;
 }}
 [data-testid="stChatInput"] textarea::placeholder {{
   color: var(--ri-text-muted) !important;
-}}
-
-/* Chat bubbles */
-.chat-bubble {{
-  background: var(--ri-surface);
-  border: 1px solid var(--ri-border);
-  border-radius: 14px;
-  padding: 12px 14px;
-}}
-.chat-title {{
-  font-weight: 700;
-  margin-bottom: 4px;
-  color: var(--ri-text);
 }}
 
 .stMarkdown, .stText, .stCaption {{
