@@ -1,5 +1,6 @@
 import re
 import duckdb
+import pandas as pd
 import streamlit as st
 from tabulate import tabulate
 
@@ -11,6 +12,7 @@ from scripts.ai_question_packs import (
     PERSONA_DESCRIPTIONS,
     FOLLOWUP_SUGGESTIONS,
 )
+from scripts.ui_theme import inject_css, CONTRAST_AUDIT
 
 DB_PATH = "duckdb/revenue_intel.duckdb"
 
@@ -89,18 +91,46 @@ def format_table(cols, rows) -> str:
         return "No rows returned."
     return tabulate(rows, headers=cols, tablefmt="github")
 
+def to_dataframe(cols, rows):
+    return pd.DataFrame(rows, columns=cols)
+
+def render_chat_message(role: str, content: str):
+    if role != "assistant":
+        st.markdown(content)
+        return
+    lines = [line.strip() for line in content.splitlines() if line.strip()]
+    title = lines[0] if lines else "Answer"
+    bullets = [line[2:] for line in lines[1:] if line.startswith("- ")]
+    bullets_html = "".join([f"<li>{b}</li>" for b in bullets])
+    st.markdown(
+        f"""
+<div class="chat-bubble">
+  <div class="chat-title">{title}</div>
+  <ul>{bullets_html}</ul>
+</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 # ---------------- UI ----------------
 
 st.set_page_config(page_title="Revenue Intelligence Agent", layout="wide")
-st.title("Revenue Intelligence Agent")
-st.caption("Ask about ARR/MRR, renewal date, health score, and expansion potential. (Demo: allowlisted + guarded SQL)")
+inject_css()
+st.markdown("<div class='app-container'>", unsafe_allow_html=True)
+st.markdown("## Revenue Intelligence")
+st.markdown(
+    "<p class='ri-subtitle'>Ask about ARR/MRR, renewals, health and expansion — governed SQL.</p>",
+    unsafe_allow_html=True,
+)
+if CONTRAST_AUDIT:
+    st.warning("Readability audit enabled")
 
 known_accounts = load_account_names()
 
 PERSONAS = list(PERSONA_QUESTION_PACKS.keys())
 
 with st.sidebar:
-    st.header("Demo Controls")
+    st.header("Context")
     if "persona" not in st.session_state:
         st.session_state.persona = PERSONAS[0]
     persona = st.selectbox(
@@ -109,13 +139,11 @@ with st.sidebar:
         index=PERSONAS.index(st.session_state.persona),
     )
     st.session_state.persona = persona
-    st.caption(PERSONA_DESCRIPTIONS.get(persona, ""))
     selected_account = st.selectbox("Default account", known_accounts, index=0)
-    st.divider()
-    st.markdown("**Example questions (no names needed)**")
-    st.markdown("- Give me an account overview")
-    st.markdown("- Is this account healthy?")
-    st.markdown("- What is the expansion potential?")
+    if st.button("New chat", type="primary", use_container_width=True):
+        st.session_state.pop("messages", None)
+        st.session_state.pop("queued_question", None)
+        st.rerun()
 
 if "messages" not in st.session_state:
     st.session_state.messages = [
@@ -124,15 +152,30 @@ if "messages" not in st.session_state:
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+        render_chat_message(msg["role"], msg["content"])
 
-st.markdown("### Try these")
+st.markdown(f"### Quick questions for {st.session_state.persona}")
 question_tiles = PERSONA_QUESTION_PACKS.get(st.session_state.persona, [])
+primary_tiles = question_tiles[:6]
+extra_tiles = question_tiles[6:]
 tile_cols = st.columns(3)
-for idx, q in enumerate(question_tiles):
-    if tile_cols[idx % 3].button(q, use_container_width=True):
-        st.session_state["queued_question"] = q
-        st.rerun()
+st.markdown("<div class='tile-grid'>", unsafe_allow_html=True)
+for idx, q in enumerate(primary_tiles):
+    with tile_cols[idx % 3]:
+        if st.button(q, key=f"tile-{idx}"):
+            st.session_state["queued_question"] = q
+            st.rerun()
+st.markdown("</div>", unsafe_allow_html=True)
+if extra_tiles:
+    with st.expander("Show more"):
+        extra_cols = st.columns(3)
+        st.markdown("<div class='tile-grid'>", unsafe_allow_html=True)
+        for idx, q in enumerate(extra_tiles):
+            with extra_cols[idx % 3]:
+                if st.button(q, key=f"tile-extra-{idx}"):
+                    st.session_state["queued_question"] = q
+                    st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
 question = st.chat_input("Type your question… (use the default account if you omit a name)")
 if not question and st.session_state.get("queued_question"):
@@ -168,18 +211,33 @@ if question:
             if rows and intent in INTERPRETERS:
                 row0 = dict(zip(cols, rows[0]))
                 interpretation = INTERPRETERS[intent](row0)
-                st.markdown(f"**{interpretation.get('title', 'Summary')}**")
-                for bullet in interpretation.get("summary_bullets", [])[:5]:
-                    st.markdown(f"- {bullet}")
-                if interpretation.get("narrative"):
-                    st.markdown(interpretation["narrative"])
+                bullets = interpretation.get("summary_bullets", [])[:5]
+                bullets_html = "".join([f"<li>{b}</li>" for b in bullets])
+                narrative = interpretation.get("narrative", "")
+                intent_titles = {
+                    "account_overview": "Account overview",
+                    "health_summary": "Health summary",
+                    "expansion_potential": "Expansion potential",
+                }
+                title = intent_titles.get(intent, "Answer")
+                st.markdown(
+                    f"""
+<div class="answer-card">
+  <div class="answer-label">Answer</div>
+  <div class="answer-title">{title} — {account_name}</div>
+  <ul>{bullets_html}</ul>
+  <div class="answer-muted">{narrative}</div>
+</div>
+                    """,
+                    unsafe_allow_html=True,
+                )
                 for warning in interpretation.get("warnings", []):
                     st.warning(warning)
             else:
                 st.markdown("No results found for this question.")
 
             # Suggested next questions (always visible)
-            st.markdown("### Suggested next questions")
+            st.markdown("**Next best questions**")
             base_suggestions = FOLLOWUP_SUGGESTIONS.get(intent, [])
             persona_pack = PERSONA_QUESTION_PACKS.get(st.session_state.persona, [])
             suggestions = [q for q in base_suggestions if q in persona_pack]
@@ -189,32 +247,52 @@ if question:
                         suggestions.append(q)
                     if len(suggestions) >= 6:
                         break
-            suggestion_cols = st.columns(3)
-            for idx, q in enumerate(suggestions[:6]):
-                if suggestion_cols[idx % 3].button(q, key=f"suggest-{intent}-{idx}"):
-                    st.session_state["queued_question"] = q
-                    st.rerun()
+            suggestion_cols = st.columns(4)
+            st.markdown("<div class='pill'>", unsafe_allow_html=True)
+            for idx, q in enumerate(suggestions[:4]):
+                with suggestion_cols[idx % 4]:
+                    if st.button(q, key=f"suggest-{intent}-{idx}"):
+                        st.session_state["queued_question"] = q
+                        st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
-            # Evidence (collapsed by default)
-            st.markdown("### Evidence")
+            # Details (tabs)
+            st.markdown("### Details")
+            tab_labels = ["Data", "SQL", "Definitions", "Debug"]
             if result.get("chart"):
-                with st.expander("See chart", expanded=False):
-                    st.altair_chart(result["chart"], use_container_width=True)
-            with st.expander("See data", expanded=False):
-                st.code(format_table(cols, rows), language="markdown")
-            with st.expander("See SQL", expanded=False):
+                tab_labels.append("Chart")
+            tabs = st.tabs(tab_labels)
+            with tabs[0]:
+                st.dataframe(to_dataframe(cols, rows), use_container_width=True)
+            with tabs[1]:
+                copy_key = f"copy-sql-{intent}"
+                if st.button("Copy SQL", key=copy_key):
+                    st.toast("SQL ready to copy from below.")
                 st.code(result["sql"], language="sql")
-            with st.expander("Definitions / assumptions", expanded=False):
+            with tabs[2]:
                 if rows and intent in INTERPRETERS:
                     for item in interpretation.get("definitions", []):
                         st.markdown(f"- {item}")
                 else:
                     st.markdown("No definitions available.")
-            with st.expander("Debug", expanded=False):
+            with tabs[3]:
                 st.markdown(f"- Intent: `{intent}`")
                 st.markdown(f"- Rows: {len(rows)}")
+            if result.get("chart"):
+                with tabs[4]:
+                    st.altair_chart(result["chart"], use_container_width=True)
 
-            # Save assistant message content (concise)
-            answer_text = f"Result for **{account_name}** (intent: `{intent}`)\n\n" \
-                          f"```\n{format_table(cols, rows)}\n```"
-            st.session_state.messages.append({"role": "assistant", "content": answer_text})
+            # Save assistant message content (human summary only)
+            if rows and intent in INTERPRETERS:
+                summary_lines = [f"{title} — {account_name}"]
+                for b in bullets[:5]:
+                    summary_lines.append(f"- {b}")
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": "\n".join(summary_lines)}
+                )
+            else:
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": "No results found for this question."}
+                )
+
+st.markdown("</div>", unsafe_allow_html=True)
