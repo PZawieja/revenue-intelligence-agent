@@ -36,6 +36,7 @@ def inject_css():
   --ri-primary: {THEME["primary"]};
   --ri-primary-hover: {THEME["primary_hover"]};
   --ri-text-on-primary: {THEME["text_on_primary"]};
+  color-scheme: light !important;
 }}
 
 html, body, [data-testid="stAppViewContainer"] {{
@@ -44,14 +45,52 @@ html, body, [data-testid="stAppViewContainer"] {{
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
   color-scheme: light;
 }}
+html, body {{
+  background: var(--ri-bg) !important;
+}}
 [data-testid="stApp"] {{
   background: var(--ri-bg);
+}}
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+[data-testid="stSidebar"],
+section.main,
+.stApp {{
+  background: var(--ri-bg) !important;
+  color: var(--ri-text) !important;
 }}
 [data-testid="stToolbar"],
 [data-testid="stDecoration"],
 footer {{
   background: var(--ri-bg) !important;
   color: var(--ri-text) !important;
+}}
+
+/* prevent any dark panels/popovers/expanders */
+div[role="dialog"],
+div[role="menu"],
+div[role="listbox"],
+[data-baseweb="popover"],
+[data-baseweb="menu"],
+[data-baseweb="select"],
+[data-baseweb="tooltip"],
+[data-testid="stPopover"],
+[data-testid="stExpander"],
+[data-testid="stExpanderDetails"],
+[data-testid="stVerticalBlock"],
+[data-testid="stHorizontalBlock"],
+[data-testid="stContainer"] {{
+  background: var(--ri-surface) !important;
+  color: var(--ri-text) !important;
+  border-color: var(--ri-border) !important;
+}}
+
+div[role="dialog"],
+[data-baseweb="popover"],
+[data-testid="stPopover"] {{
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12) !important;
+  border: 1px solid var(--ri-border) !important;
+  border-radius: 16px !important;
 }}
 
 [data-testid="stHeader"] {{
@@ -270,6 +309,117 @@ button[data-baseweb="button"]:not([kind="primary"]):disabled,
   gap: 8px;
   flex-wrap: wrap;
   margin-top: 8px;
+}}
+
+.suggestion-label {{
+  font-size: 12px;
+  color: var(--ri-text-muted);
+  margin-top: 10px;
+}}
+.suggestion-row {{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}}
+.suggestion-row .stButton > button {{
+  background: var(--ri-surface) !important;
+  border: 1px solid var(--ri-border) !important;
+  color: var(--ri-text) !important;
+  border-radius: 999px !important;
+  padding: 6px 10px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}}
+.suggestion-row .stButton > button:hover {{
+  background: var(--ri-surface-2) !important;
+  color: var(--ri-text) !important;
+}}
+.suggestion-row .stButton > button:active {{
+  background: var(--ri-surface-2) !important;
+  color: var(--ri-text) !important;
+}}
+.suggestion-row .stButton > button:focus,
+.suggestion-row .stButton > button:focus-visible {{
+  outline: 2px solid var(--ri-border) !important;
+  outline-offset: 2px !important;
+  color: var(--ri-text) !important;
+}}
+.suggestion-row .stButton > button:disabled {{
+  background: var(--ri-surface) !important;
+  color: var(--ri-text-muted) !important;
+  border-color: var(--ri-border) !important;
+}}
+.suggestion-row .stButton > button:active,
+.suggestion-row .stButton > button:focus,
+.suggestion-row .stButton > button:focus-visible {{
+  outline: 2px solid var(--ri-border) !important;
+  outline-offset: 2px !important;
+}}
+
+.quick-link .stButton > button {{
+  background: transparent !important;
+  color: var(--ri-text-muted) !important;
+  border: none !important;
+  padding: 0 !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+}}
+.quick-link .stButton > button:hover {{
+  color: var(--ri-text) !important;
+}}
+.quick-link .stButton > button:active,
+.quick-link .stButton > button:focus,
+.quick-link .stButton > button:focus-visible {{
+  color: var(--ri-text) !important;
+  outline: none !important;
+}}
+.quick-link .stButton > button:disabled {{
+  color: var(--ri-text-muted) !important;
+}}
+
+.quick-mini {{
+  margin-top: 6px;
+}}
+
+/* Quick questions popover */
+.quickq-popover {{
+  background: var(--ri-surface) !important;
+  border: 1px solid var(--ri-border) !important;
+  border-radius: 16px !important;
+  padding: 12px !important;
+  max-width: 600px !important;
+  max-height: 220px !important;
+  overflow-y: auto !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12) !important;
+}}
+.quickq-row {{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}}
+.quickq-popover .stButton > button {{
+  background: var(--ri-surface) !important;
+  color: var(--ri-text) !important;
+  border: 1px solid var(--ri-border) !important;
+  border-radius: 999px !important;
+  padding: 6px 10px !important;
+  font-size: 13px !important;
+  line-height: 1.1 !important;
+  box-shadow: none !important;
+  max-width: 260px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}}
+.quickq-popover .stButton > button:hover {{
+  background: var(--ri-surface-2) !important;
+}}
+.quickq-popover .stButton > button:active,
+.quickq-popover .stButton > button:focus {{
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.15) !important;
 }}
 
 /* Chips */

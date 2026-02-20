@@ -302,9 +302,17 @@ if "evidence_by_msg_id" not in st.session_state:
     st.session_state.evidence_by_msg_id = {}
 if "details_open" not in st.session_state:
     st.session_state.details_open = {}
+if "has_interacted" not in st.session_state:
+    st.session_state.has_interacted = False
+if "quick_questions_open" not in st.session_state:
+    st.session_state.quick_questions_open = False
 
-show_quick = not any(m["role"] == "user" for m in st.session_state.messages)
-if show_quick:
+# Keep has_interacted in sync with history
+if not st.session_state.has_interacted:
+    if any(m.get("role") == "user" for m in st.session_state.get("messages", [])):
+        st.session_state.has_interacted = True
+
+if not st.session_state.has_interacted:
     with st.expander(f"Quick questions for {st.session_state.persona}", expanded=True):
         st.markdown("<div class='tile-grid'>", unsafe_allow_html=True)
         question_tiles = PERSONA_QUESTION_PACKS.get(st.session_state.persona, [])
@@ -315,6 +323,7 @@ if show_quick:
             with tile_cols[idx % 3]:
                 if st.button(q, key=f"quick-tile-{idx}"):
                     st.session_state["queued_question"] = q
+                    st.session_state.has_interacted = True
                     st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
         if extra_tiles:
@@ -325,6 +334,7 @@ if show_quick:
                     with extra_cols[idx % 3]:
                         if st.button(q, key=f"quick-tile-extra-{idx}"):
                             st.session_state["queued_question"] = q
+                            st.session_state.has_interacted = True
                             st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -391,23 +401,19 @@ for msg in st.session_state.messages:
 
         st.markdown(f"<div class='so-what'>{so_what}</div>", unsafe_allow_html=True)
 
-        if msg_id == last_assistant_id and ev.get("intent"):
-            base_suggestions = FOLLOWUP_SUGGESTIONS.get(ev.get("intent", ""), [])
-            persona_pack = PERSONA_QUESTION_PACKS.get(st.session_state.persona, [])
-            suggestions = [q for q in base_suggestions if q in persona_pack]
-            if len(suggestions) < 4:
-                for q in persona_pack:
-                    if q not in suggestions:
-                        suggestions.append(q)
-                    if len(suggestions) >= 4:
-                        break
-            if suggestions:
-                st.markdown("<div class='pill'>", unsafe_allow_html=True)
-                for s_idx, q in enumerate(suggestions[:4]):
-                    if st.button(q, key=f"suggest-{msg_id}-{s_idx}-{abs(hash(q))}"):
-                        st.session_state["queued_question"] = q
-                        st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
+        followups = content.get("followups", [])
+        if followups:
+            st.markdown(
+                "<div class='suggestion-label'>Suggested next questions</div>",
+                unsafe_allow_html=True,
+            )
+            st.markdown("<div class='suggestion-row'>", unsafe_allow_html=True)
+            for s_idx, q in enumerate(followups[:4]):
+                if st.button(q, key=f"sugg_{msg_id}_{s_idx}"):
+                    st.session_state["queued_question"] = q
+                    st.session_state.has_interacted = True
+                    st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
         if st.session_state.details_open.get(msg_id, False):
             st.markdown("<div class='details-section'>", unsafe_allow_html=True)
@@ -450,9 +456,42 @@ question = st.chat_input(
     "Type your question… (use the default account if you omit a name)",
     key="chat_input",
 )
+if st.session_state.has_interacted:
+    st.markdown("<div class='quick-link'>", unsafe_allow_html=True)
+    if hasattr(st, "popover"):
+        with st.popover("Quick questions"):
+            st.markdown("<div class='quickq-popover'>", unsafe_allow_html=True)
+            st.markdown("<div class='quickq-row'>", unsafe_allow_html=True)
+            question_tiles = PERSONA_QUESTION_PACKS.get(st.session_state.persona, [])
+            primary_tiles = question_tiles[:10]
+            for idx, q in enumerate(primary_tiles):
+                if st.button(q, key=f"quick-pop-{idx}"):
+                    st.session_state["queued_question"] = q
+                    st.session_state.has_interacted = True
+                    st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        if st.button("Quick questions", key="quick-toggle-link", type="secondary"):
+            st.session_state.quick_questions_open = not st.session_state.quick_questions_open
+        if st.session_state.quick_questions_open:
+            st.markdown("<div class='quickq-popover'>", unsafe_allow_html=True)
+            st.markdown("<div class='quickq-row'>", unsafe_allow_html=True)
+            question_tiles = PERSONA_QUESTION_PACKS.get(st.session_state.persona, [])
+            primary_tiles = question_tiles[:10]
+            for idx, q in enumerate(primary_tiles):
+                if st.button(q, key=f"quick-mini-{idx}"):
+                    st.session_state["queued_question"] = q
+                    st.session_state.has_interacted = True
+                    st.session_state.quick_questions_open = False
+                    st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 if not question and st.session_state.get("queued_question"):
     question = st.session_state.pop("queued_question")
 if question:
+    st.session_state.has_interacted = True
     user_id = new_msg_id("user")
     st.session_state.messages.append({"id": user_id, "role": "user", "content": question})
     with st.spinner("Thinking…"):
@@ -510,12 +549,21 @@ if question:
             }
             title = title_map.get(intent, "Answer")
             title = f"{title} — {account_name}" if account_name else title
+            base_suggestions = FOLLOWUP_SUGGESTIONS.get(intent, [])
+            persona_pack = PERSONA_QUESTION_PACKS.get(st.session_state.persona, [])
+            followups = [q for q in base_suggestions if q in persona_pack]
+            if len(followups) < 4:
+                for q in persona_pack:
+                    if q not in followups:
+                        followups.append(q)
+                    if len(followups) >= 4:
+                        break
             content = {
                 "title": title,
                 "bullets": bullets,
                 "so_what": build_so_what(intent, df),
                 "kpis": build_kpis(intent, df),
-                "followups": [],
+                "followups": followups[:4],
             }
             assistant_id = new_msg_id("asst")
             st.session_state.messages.append(
