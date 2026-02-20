@@ -6,6 +6,11 @@ from tabulate import tabulate
 from scripts.ai_sql_guard import get_allowed_assets, validate_sql
 from scripts.ai_intents import SQL_TEMPLATES
 from scripts.ai_interpreters import INTERPRETERS
+from scripts.ai_question_packs import (
+    PERSONA_QUESTION_PACKS,
+    PERSONA_DESCRIPTIONS,
+    FOLLOWUP_SUGGESTIONS,
+)
 
 DB_PATH = "duckdb/revenue_intel.duckdb"
 
@@ -92,25 +97,25 @@ st.caption("Ask about ARR/MRR, renewal date, health score, and expansion potenti
 
 known_accounts = load_account_names()
 
-QUESTION_TEMPLATES = [
-    "Give me an account overview",
-    "Is this account healthy?",
-    "What is the expansion potential?",
-]
+PERSONAS = list(PERSONA_QUESTION_PACKS.keys())
 
 with st.sidebar:
     st.header("Demo Controls")
+    if "persona" not in st.session_state:
+        st.session_state.persona = PERSONAS[0]
+    persona = st.selectbox(
+        "Persona",
+        PERSONAS,
+        index=PERSONAS.index(st.session_state.persona),
+    )
+    st.session_state.persona = persona
+    st.caption(PERSONA_DESCRIPTIONS.get(persona, ""))
     selected_account = st.selectbox("Default account", known_accounts, index=0)
     st.divider()
     st.markdown("**Example questions (no names needed)**")
     st.markdown("- Give me an account overview")
     st.markdown("- Is this account healthy?")
     st.markdown("- What is the expansion potential?")
-    st.divider()
-    st.markdown("**Quick question**")
-    quick_question = st.selectbox("Pick a question", QUESTION_TEMPLATES, index=0)
-    if st.button("Ask"):
-        st.session_state["queued_question"] = quick_question
 
 if "messages" not in st.session_state:
     st.session_state.messages = [
@@ -120,6 +125,14 @@ if "messages" not in st.session_state:
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
+
+st.markdown("### Try these")
+question_tiles = PERSONA_QUESTION_PACKS.get(st.session_state.persona, [])
+tile_cols = st.columns(3)
+for idx, q in enumerate(question_tiles):
+    if tile_cols[idx % 3].button(q, use_container_width=True):
+        st.session_state["queued_question"] = q
+        st.rerun()
 
 question = st.chat_input("Type your question… (use the default account if you omit a name)")
 if not question and st.session_state.get("queued_question"):
@@ -150,20 +163,56 @@ if question:
         else:
             cols, rows = result["cols"], result["rows"]
 
-            # Table
-            st.markdown("### Result")
-            st.code(format_table(cols, rows), language="markdown")
-
-            # Interpretation
+            # Answer (always visible)
+            st.markdown("### Answer")
             if rows and intent in INTERPRETERS:
                 row0 = dict(zip(cols, rows[0]))
                 interpretation = INTERPRETERS[intent](row0)
-                st.markdown("### Interpretation")
-                st.markdown(interpretation)
+                st.markdown(f"**{interpretation.get('title', 'Summary')}**")
+                for bullet in interpretation.get("summary_bullets", [])[:5]:
+                    st.markdown(f"- {bullet}")
+                if interpretation.get("narrative"):
+                    st.markdown(interpretation["narrative"])
+                for warning in interpretation.get("warnings", []):
+                    st.warning(warning)
+            else:
+                st.markdown("No results found for this question.")
 
-            # Debug
-            with st.expander("Show SQL (debug)"):
+            # Suggested next questions (always visible)
+            st.markdown("### Suggested next questions")
+            base_suggestions = FOLLOWUP_SUGGESTIONS.get(intent, [])
+            persona_pack = PERSONA_QUESTION_PACKS.get(st.session_state.persona, [])
+            suggestions = [q for q in base_suggestions if q in persona_pack]
+            if len(suggestions) < 4:
+                for q in persona_pack:
+                    if q not in suggestions:
+                        suggestions.append(q)
+                    if len(suggestions) >= 6:
+                        break
+            suggestion_cols = st.columns(3)
+            for idx, q in enumerate(suggestions[:6]):
+                if suggestion_cols[idx % 3].button(q, key=f"suggest-{intent}-{idx}"):
+                    st.session_state["queued_question"] = q
+                    st.rerun()
+
+            # Evidence (collapsed by default)
+            st.markdown("### Evidence")
+            if result.get("chart"):
+                with st.expander("See chart", expanded=False):
+                    st.altair_chart(result["chart"], use_container_width=True)
+            with st.expander("See data", expanded=False):
+                st.code(format_table(cols, rows), language="markdown")
+            with st.expander("See SQL", expanded=False):
                 st.code(result["sql"], language="sql")
+            with st.expander("Definitions / assumptions", expanded=False):
+                if rows and intent in INTERPRETERS:
+                    for item in interpretation.get("definitions", []):
+                        st.markdown(f"- {item}")
+                else:
+                    st.markdown("No definitions available.")
+            with st.expander("Debug", expanded=False):
+                st.markdown(f"- Intent: `{intent}`")
+                st.markdown(f"- Rows: {len(rows)}")
 
             # Save assistant message content (concise)
             answer_text = f"Result for **{account_name}** (intent: `{intent}`)\n\n" \
