@@ -9,6 +9,7 @@ def interpret_account_overview(row: dict) -> dict:
     return {
         "title": "Account overview",
         "summary_bullets": summary_bullets[:5],
+        "bullets": summary_bullets[:5],
         "narrative": "Use this to confirm renewal timing, current value, and plan context.",
         "definitions": [
             "MRR = monthly recurring revenue for the current subscription.",
@@ -41,6 +42,7 @@ def interpret_health_summary(row: dict) -> dict:
     return {
         "title": "Health summary",
         "summary_bullets": summary_bullets[:5],
+        "bullets": summary_bullets[:5],
         "narrative": "Use this to prioritize proactive outreach and renewal planning.",
         "definitions": [
             "Health score ranges from 0 (high risk) to 1 (healthy).",
@@ -69,6 +71,7 @@ def interpret_expansion_potential(row: dict) -> dict:
     return {
         "title": "Expansion potential",
         "summary_bullets": summary_bullets[:5],
+        "bullets": summary_bullets[:5],
         "narrative": "Use this to target accounts for upsell based on health and utilization.",
         "definitions": [
             "Seat utilization approximates active usage relative to purchased seats.",

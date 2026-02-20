@@ -308,6 +308,11 @@ button[data-baseweb="button"]:not([kind="primary"]):disabled,
 .answer-muted {{
   color: var(--ri-text-muted);
 }}
+.so-what {{
+  color: var(--ri-text-muted);
+  font-size: 13px;
+  margin-top: 8px;
+}}
 .answer-list {{
   margin: 8px 0 6px 18px;
 }}
@@ -321,17 +326,31 @@ button[data-baseweb="button"]:not([kind="primary"]):disabled,
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin: 6px 0 10px 0;
+  margin: 8px 0 10px 0;
 }}
-
-.chip {{
+.kpi-chip {{
+  font-size: 12.5px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--ri-border);
   background: var(--ri-surface-2);
   color: var(--ri-text);
-  border: 1px solid var(--ri-border);
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 0.8rem;
   font-weight: 600;
+}}
+.kpi-good {{
+  background: #EAF7EF;
+  border-color: #DCEFE4;
+  color: #167A3E;
+}}
+.kpi-warn {{
+  background: #FFF6E6;
+  border-color: #FCE8C7;
+  color: #8A5A14;
+}}
+.kpi-bad {{
+  background: #FCEEEE;
+  border-color: #F7D9D9;
+  color: #9A2A2A;
 }}
 
 .kv-card {{
@@ -436,7 +455,14 @@ div[data-baseweb="tab-list"] button {{
 }}
 [data-testid="stRadio"] input:checked + div {{
   background: var(--ri-surface) !important;
-  border-color: var(--ri-border) !important;
+  border-color: var(--ri-text) !important;
+}}
+[data-testid="stRadio"] input:checked + div span,
+[data-testid="stRadio"] div[role="radio"] span {{
+  color: var(--ri-text) !important;
+}}
+[data-testid="stRadio"] div[role="radio"] {{
+  box-shadow: none !important;
 }}
 
 /* Expanders and debug labels */
@@ -464,15 +490,6 @@ code, pre, .stCodeBlock, [data-testid="stCodeBlock"] {{
   font-size: 0.85rem !important;
 }}
 
-/* Dataframe surface */
-div[data-testid="stDataFrame"] {{
-  background: var(--ri-surface) !important;
-  border: 1px solid var(--ri-border) !important;
-  border-radius: 12px !important;
-}}
-div[data-testid="stDataFrame"] * {{
-  color: var(--ri-text) !important;
-}}
 
 /* Chat bubbles + badges */
 .chat-bubble {{

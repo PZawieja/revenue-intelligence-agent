@@ -1,5 +1,7 @@
 import time
 import uuid
+from datetime import date, datetime
+from typing import Optional
 
 import duckdb
 import pandas as pd
@@ -97,55 +99,144 @@ def render_user_bubble(content: str):
     st.markdown(f"<div class='chat-bubble chat-bubble-user'>{content}</div>", unsafe_allow_html=True)
 
 
-def parse_summary(content: str):
-    lines = [line.strip() for line in content.splitlines() if line.strip()]
-    title = lines[0] if lines else "Answer"
-    bullets = [line[2:] for line in lines[1:] if line.startswith("- ")]
-    narrative = " ".join([line for line in lines[1:] if not line.startswith("- ")])
-    return title, bullets, narrative
+def _safe_value(val):
+    if val is None:
+        return None
+    try:
+        if pd.isna(val):
+            return None
+    except Exception:
+        pass
+    return val
 
 
-def build_kpi_chips(intent: str, row: dict) -> list[dict]:
-    if not row:
+def _format_date(val) -> Optional[str]:
+    if val is None:
+        return None
+    if isinstance(val, (datetime, date)):
+        return val.strftime("%Y-%m-%d")
+    if isinstance(val, str):
+        return val[:10]
+    return str(val)
+
+
+def _format_currency(val) -> Optional[str]:
+    val = _safe_value(val)
+    if val is None:
+        return None
+    try:
+        return f"€{int(round(float(val)))}"
+    except Exception:
+        return f"€{val}"
+
+
+def _format_percent(val) -> Optional[str]:
+    val = _safe_value(val)
+    if val is None:
+        return None
+    try:
+        pct = float(val)
+        if pct <= 1:
+            pct *= 100
+        return f"{int(round(pct))}%"
+    except Exception:
+        return None
+
+
+def _days_until(date_val) -> Optional[int]:
+    d = _format_date(date_val)
+    if not d:
+        return None
+    try:
+        dt = datetime.strptime(d, "%Y-%m-%d").date()
+        return (dt - date.today()).days
+    except Exception:
+        return None
+
+
+def build_kpis(intent: str, df: pd.DataFrame) -> list[dict]:
+    if df is None or df.empty:
         return []
-    chips = []
-    if intent == "health_summary":
-        health_score = row.get("health_score")
-        health_band = row.get("health_band")
-        days_to_renewal = row.get("days_to_renewal")
-        usage_drop_ratio = row.get("usage_drop_ratio")
+    row = df.iloc[0]
+    kpis = []
+
+    def add_kpi(label: str, value, tone: str = "neutral"):
+        if value is None:
+            return
+        kpis.append({"label": label, "value": value, "tone": tone})
+
+    if intent in {"health_summary", "risk_summary"}:
+        health_score = _safe_value(row.get("health_score"))
+        health_band = str(row.get("health_band") or "").lower()
         if health_score is not None:
-            band = (health_band or "").lower()
-            chip_class = f"chip-{band}" if band in {"green", "yellow", "red"} else "chip-neutral"
-            chips.append({"text": f"Health {health_score:.2f}", "class": chip_class})
+            tone = "neutral"
+            if health_band == "green":
+                tone = "good"
+            elif health_band == "yellow":
+                tone = "warn"
+            elif health_band == "red":
+                tone = "bad"
+            add_kpi("Health", f"{float(health_score):.2f}", tone)
+        days_to_renewal = _safe_value(row.get("days_to_renewal"))
         if days_to_renewal is not None:
-            chips.append({"text": f"{days_to_renewal} days to renewal", "class": "chip-neutral"})
+            tone = "warn" if int(days_to_renewal) <= 60 else "neutral"
+            add_kpi("Days", f"{int(days_to_renewal)}", tone)
+        usage_drop_ratio = _safe_value(row.get("usage_drop_ratio"))
         if usage_drop_ratio is not None:
-            chips.append({"text": f"Usage ↓ {usage_drop_ratio:.0%}", "class": "chip-neutral"})
-    elif intent == "account_overview":
-        plan = row.get("plan")
-        status = row.get("subscription_status")
-        renewal_date = row.get("renewal_date")
-        current_mrr = row.get("current_mrr_eur")
-        if plan:
-            chips.append({"text": f"Plan {plan}", "class": "chip-neutral"})
-        if status:
-            chips.append({"text": f"Status {status}", "class": "chip-neutral"})
-        if renewal_date:
-            chips.append({"text": f"Renewal {renewal_date}", "class": "chip-neutral"})
-        if current_mrr is not None:
-            chips.append({"text": f"MRR €{current_mrr}", "class": "chip-neutral"})
-    elif intent == "expansion_potential":
-        expansion_score = row.get("expansion_score")
-        expansion_band = row.get("expansion_band")
-        seat_util = row.get("seat_utilization_ratio")
+            tone = "warn" if float(usage_drop_ratio) >= 0.20 else "neutral"
+            add_kpi("Usage ↓", _format_percent(usage_drop_ratio), tone)
+        tickets_high = _safe_value(row.get("tickets_high"))
+        if tickets_high is not None:
+            tone = "warn" if int(tickets_high) > 0 else "neutral"
+            add_kpi("Tickets", f"{int(tickets_high)}", tone)
+    elif intent in {"account_overview"}:
+        add_kpi("Plan", _safe_value(row.get("plan")))
+        status = _safe_value(row.get("subscription_status"))
+        tone = "bad" if str(status).lower() == "cancelled" else "neutral"
+        add_kpi("Status", status, tone)
+        renewal_date = _format_date(_safe_value(row.get("renewal_date")))
+        days = _days_until(renewal_date)
+        add_kpi("Renewal", renewal_date, "warn" if days is not None and days <= 60 else "neutral")
+        add_kpi("MRR", _format_currency(row.get("current_mrr_eur")))
+    elif intent in {"expansion_summary", "expansion", "expansion_potential"}:
+        expansion_score = _safe_value(row.get("expansion_score"))
         if expansion_score is not None:
-            band = (expansion_band or "").lower()
-            chip_class = f"chip-{band}" if band in {"high", "medium", "low"} else "chip-neutral"
-            chips.append({"text": f"Expansion {expansion_score:.2f}", "class": chip_class})
-        if seat_util is not None:
-            chips.append({"text": f"Seat util {seat_util:.2f}", "class": "chip-neutral"})
-    return chips
+            score = float(expansion_score)
+            tone = "good" if score >= 0.7 else "warn" if score < 0.4 else "neutral"
+            add_kpi("Expansion", f"{score:.2f}", tone)
+        add_kpi("ARR", _format_currency(row.get("current_arr_eur")))
+        seats = _safe_value(row.get("seats_purchased")) or _safe_value(row.get("seats_total"))
+        add_kpi("Seats", f"{int(seats)}" if seats is not None else None)
+        util = _safe_value(row.get("seat_utilization_pct")) or _safe_value(
+            row.get("seat_utilization_ratio")
+        )
+        if util is not None:
+            tone = "warn" if float(util) >= 0.85 else "neutral"
+            add_kpi("Utilization", _format_percent(util), tone)
+
+    return kpis[:4]
+
+
+def build_so_what(intent: str, df: pd.DataFrame) -> str:
+    if intent == "health_summary":
+        if df is not None and not df.empty:
+            row = df.iloc[0]
+            days = _safe_value(row.get("days_to_renewal"))
+            usage = _safe_value(row.get("usage_drop_ratio"))
+            if days is not None and int(days) <= 60:
+                return "Proactively reach out before renewal and address the main risk driver."
+            if usage is not None and float(usage) >= 0.20:
+                return "Investigate usage decline and confirm adoption plan with the customer."
+        return "Monitor health signals and plan renewal outreach in advance."
+    if intent == "account_overview":
+        return "Use this to confirm renewal timing, current value, and plan context."
+    if intent in {"expansion_summary", "expansion", "expansion_potential"}:
+        if df is not None and not df.empty:
+            score = _safe_value(df.iloc[0].get("expansion_score"))
+            if score is not None and float(score) >= 0.7:
+                return "This looks like a strong expansion candidate—review seats and product fit for upsell."
+        return "Validate expansion drivers and identify 1–2 concrete upsell angles."
+    return "Use this summary to decide the next best action."
 
 
 st.set_page_config(page_title="Revenue Intelligence Agent", layout="wide")
@@ -182,7 +273,7 @@ with st.sidebar:
     if st.button("New chat", type="primary", use_container_width=True, key="new_chat_button"):
         st.session_state.pop("messages", None)
         st.session_state.pop("queued_question", None)
-        st.session_state.pop("evidence", None)
+        st.session_state.pop("evidence_by_msg_id", None)
         st.session_state.pop("details_open", None)
         st.rerun()
 
@@ -195,7 +286,16 @@ if "messages" not in st.session_state:
         {
             "id": new_msg_id("asst"),
             "role": "assistant",
-            "content": "Hi! Ask me about a customer (overview, health, expansion).",
+            "content": {
+                "title": "Welcome",
+                "bullets": [
+                    "Ask about account overview, health, or expansion.",
+                    "Use the default account if you omit a name.",
+                ],
+                "so_what": "Start with an account overview to get context.",
+                "kpis": [],
+                "followups": [],
+            },
         }
     ]
 if "evidence_by_msg_id" not in st.session_state:
@@ -247,16 +347,19 @@ for msg in st.session_state.messages:
         continue
 
     with st.chat_message("assistant"):
-        title, bullets, narrative = parse_summary(msg["content"])
+        content = msg.get("content", {})
+        if isinstance(content, dict):
+            title = content.get("title", "Answer")
+            bullets = content.get("bullets", [])
+            so_what = content.get("so_what", "Use this summary to decide the next best action.")
+            kpis = content.get("kpis", [])
+        else:
+            title = str(content)
+            bullets = []
+            so_what = "Use this summary to decide the next best action."
+            kpis = []
         ev = st.session_state.evidence_by_msg_id.get(msg_id, {})
-        account_name = ev.get("account_name", "")
-        intent_titles = {
-            "account_overview": "Account overview",
-            "health_summary": "Health summary",
-            "expansion_potential": "Expansion potential",
-        }
-        friendly_title = intent_titles.get(ev.get("intent", ""), title)
-        header_title = f"{friendly_title} — {account_name}" if account_name else friendly_title
+        header_title = title
 
         st.markdown("<div class='answer-card'>", unsafe_allow_html=True)
         header_cols = st.columns([0.78, 0.22])
@@ -271,10 +374,12 @@ for msg in st.session_state.messages:
                     st.session_state.details_open[msg_id] = not is_open
                     st.rerun()
 
-        chips = build_kpi_chips(ev.get("intent", ""), ev.get("row0", {}))
-        if chips:
+        if kpis:
             chips_html = "".join(
-                [f"<span class='chip {c['class']}'>{c['text']}</span>" for c in chips]
+                [
+                    f"<span class='kpi-chip kpi-{c.get('tone','neutral')}'>{c['label']}: {c['value']}</span>"
+                    for c in kpis[:4]
+                ]
             )
             st.markdown(f"<div class='kpi-row'>{chips_html}</div>", unsafe_allow_html=True)
 
@@ -284,8 +389,7 @@ for msg in st.session_state.messages:
         else:
             st.markdown("<div class='answer-muted'>No summary available.</div>", unsafe_allow_html=True)
 
-        if narrative:
-            st.markdown(f"<div class='answer-muted'>{narrative}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='so-what'>{so_what}</div>", unsafe_allow_html=True)
 
         if msg_id == last_assistant_id and ev.get("intent"):
             base_suggestions = FOLLOWUP_SUGGESTIONS.get(ev.get("intent", ""), [])
@@ -363,7 +467,17 @@ if question:
     if "error" in result:
         assistant_id = new_msg_id("asst")
         st.session_state.messages.append(
-            {"id": assistant_id, "role": "assistant", "content": f"❌ {result['error']}"}
+            {
+                "id": assistant_id,
+                "role": "assistant",
+                "content": {
+                    "title": "Something went wrong",
+                    "bullets": [str(result["error"])],
+                    "so_what": "Use this summary to decide the next best action.",
+                    "kpis": [],
+                    "followups": [],
+                },
+            }
         )
         st.session_state.evidence_by_msg_id[assistant_id] = {
             "df": None,
@@ -386,24 +500,27 @@ if question:
         if rows and intent in INTERPRETERS:
             row0 = dict(zip(cols, rows[0]))
             interpretation = INTERPRETERS[intent](row0)
-            bullets = interpretation.get("summary_bullets", [])[:5]
-            narrative = interpretation.get("narrative", "")
-            intent_titles = {
+            bullets = interpretation.get("bullets") or interpretation.get("summary_bullets", [])
+            bullets = bullets[:4]
+            df = to_dataframe(cols, rows)
+            title_map = {
                 "account_overview": "Account overview",
                 "health_summary": "Health summary",
                 "expansion_potential": "Expansion potential",
             }
-            title = intent_titles.get(intent, "Answer")
-            summary_lines = [f"{title} — {account_name}"]
-            for b in bullets[:5]:
-                summary_lines.append(f"- {b}")
-            if narrative:
-                summary_lines.append(narrative)
+            title = title_map.get(intent, "Answer")
+            title = f"{title} — {account_name}" if account_name else title
+            content = {
+                "title": title,
+                "bullets": bullets,
+                "so_what": build_so_what(intent, df),
+                "kpis": build_kpis(intent, df),
+                "followups": [],
+            }
             assistant_id = new_msg_id("asst")
             st.session_state.messages.append(
-                {"id": assistant_id, "role": "assistant", "content": "\n".join(summary_lines)}
+                {"id": assistant_id, "role": "assistant", "content": content}
             )
-            df = to_dataframe(cols, rows)
             st.session_state.evidence_by_msg_id[assistant_id] = {
                 "df": df,
                 "sql": result["sql"],
@@ -423,7 +540,17 @@ if question:
         else:
             assistant_id = new_msg_id("asst")
             st.session_state.messages.append(
-                {"id": assistant_id, "role": "assistant", "content": "No results found for this question."}
+                {
+                    "id": assistant_id,
+                    "role": "assistant",
+                    "content": {
+                        "title": "No results",
+                        "bullets": ["No rows matched this question."],
+                        "so_what": "Use this summary to decide the next best action.",
+                        "kpis": [],
+                        "followups": [],
+                    },
+                }
             )
             df = to_dataframe(cols, rows) if rows else None
             st.session_state.evidence_by_msg_id[assistant_id] = {
