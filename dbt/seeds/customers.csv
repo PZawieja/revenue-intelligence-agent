@@ -2,3 +2,23 @@ account_id,account_name,segment,country,owner_ae
 acc_001,Acme GmbH,SMB,DE,piotr
 acc_002,Globex SE,MidMarket,DE,piotr
 acc_003,Initech Ltd,Enterprise,UK,alex
+acc_004,Bertelsmann Digital,Enterprise,DE,alex
+acc_005,TechStart AG,SMB,DE,piotr
+acc_006,Nordic Solutions AB,MidMarket,SE,alex
+acc_007,Paris Consulting SARL,MidMarket,FR,piotr
+acc_008,London Data Ltd,Enterprise,UK,alex
+acc_009,Munich Labs GmbH,SMB,DE,piotr
+acc_010,Amsterdam Analytics BV,MidMarket,NL,alex
+acc_011,Berlin Ventures GmbH,SMB,DE,piotr
+acc_012,Madrid Cloud SA,MidMarket,ES,alex
+acc_013,Dublin Software Ltd,Enterprise,IE,piotr
+acc_014,Hamburg Commerce AG,MidMarket,DE,alex
+acc_015,Rome Systems Srl,SMB,IT,piotr
+acc_016,Warsaw Tech Sp z o.o.,MidMarket,PL,alex
+acc_017,Vienna Enterprise GmbH,Enterprise,AT,piotr
+acc_018,Zurich Finance AG,Enterprise,CH,alex
+acc_019,Barcelona Growth SL,MidMarket,ES,piotr
+acc_020,Copenhagen Data AS,MidMarket,DK,alex
+acc_021,Helsinki Software Oy,SMB,FI,piotr
+acc_022,Lisbon Digital Lda,SMB,PT,alex
+acc_023,Brussels EU Services,Enterprise,BE,piotr

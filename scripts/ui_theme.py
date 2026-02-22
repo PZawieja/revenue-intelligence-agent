@@ -98,19 +98,77 @@ div[role="dialog"],
 }}
 
 .app-container {{
-  max-width: 980px;
+  max-width: 900px;
   margin: 0 auto;
+  padding: 0 20px;
+}}
+
+/* Hero: clear hierarchy, one value prop */
+.ri-hero {{
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--ri-border);
+}}
+.ri-hero h1 {{
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+  color: var(--ri-text);
+}}
+.ri-hero-sub {{
+  font-size: 0.9375rem;
+  color: var(--ri-text-muted);
+  font-weight: 400;
+  line-height: 1.4;
+}}
+
+/* Section labels for quick questions */
+.ri-section-label {{
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ri-text-muted);
+  margin-bottom: 8px;
+  margin-top: 16px;
+}}
+.ri-section-label:first-child {{
+  margin-top: 0;
+}}
+
+/* Persistent chip strip above input */
+.ri-chip-strip {{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}}
+.ri-chip-strip .stButton > button {{
+  background: var(--ri-surface) !important;
+  border: 1px solid var(--ri-border) !important;
+  color: var(--ri-text) !important;
+  border-radius: 999px !important;
+  padding: 6px 12px !important;
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+}}
+.ri-chip-strip .stButton > button:hover {{
+  background: var(--ri-surface-2) !important;
+  border-color: var(--ri-primary) !important;
+  color: var(--ri-primary) !important;
 }}
 
 /* Chat feed container */
 [data-testid="stChatMessage"] {{
-  max-width: 900px;
+  max-width: 720px;
   margin-left: auto;
   margin-right: auto;
-  padding-bottom: 8px;
+  padding-bottom: 16px;
 }}
 .message-row {{
-  max-width: 720px;
+  max-width: 680px;
 }}
 
 .workspace-card {{
@@ -268,18 +326,26 @@ button[data-baseweb="button"]:not([kind="primary"]):disabled,
   border-color: var(--ri-border) !important;
 }}
 
-/* Tiles */
+/* Tiles: quick-question buttons */
+.tile-grid {{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}}
 .tile-grid .stButton > button {{
   background: var(--ri-surface) !important;
   border: 1px solid var(--ri-border) !important;
-  border-radius: 12px !important;
-  padding: 12px 14px !important;
-  font-weight: 600 !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
   color: var(--ri-text) !important;
+  text-align: left !important;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }}
 .tile-grid .stButton > button:hover {{
   background: var(--ri-surface-2) !important;
-  border-color: var(--ri-border) !important;
+  border-color: var(--ri-primary) !important;
   color: var(--ri-text) !important;
 }}
 .tile-grid .stButton > button:active {{
@@ -443,28 +509,30 @@ button[data-baseweb="button"]:not([kind="primary"]):disabled,
 .answer-card {{
   background: var(--ri-surface);
   border: 1px solid var(--ri-border);
-  border-radius: 16px;
-  padding: 14px 16px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
-  max-width: 720px;
-  margin-bottom: 8px;
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  max-width: 680px;
+  margin-bottom: 12px;
 }}
 .answer-title {{
-  font-size: 1rem;
+  font-size: 1.0625rem;
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
   color: var(--ri-text);
+  letter-spacing: -0.01em;
 }}
 .badge-governed {{
   background: var(--ri-surface-2);
   border: 1px solid var(--ri-border);
   color: var(--ri-text-muted);
   border-radius: 999px;
-  padding: 4px 8px;
-  font-size: 12px;
+  padding: 3px 8px;
+  font-size: 11px;
   font-weight: 600;
-  margin-left: 6px;
+  margin-left: 8px;
   display: inline-block;
+  vertical-align: middle;
 }}
 .answer-muted {{
   color: var(--ri-text-muted);
@@ -476,25 +544,28 @@ button[data-baseweb="button"]:not([kind="primary"]):disabled,
 }}
 .answer-summary {{
   color: var(--ri-text);
-  font-size: 0.95rem;
-  margin: 6px 0 8px 0;
-  line-height: 1.4;
+  font-size: 0.9375rem;
+  margin: 8px 0 10px 0;
+  line-height: 1.5;
 }}
 .next-best-action {{
   color: var(--ri-text);
-  font-size: 13px;
-  margin-top: 10px;
-  padding: 8px 0;
+  font-size: 0.8125rem;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--ri-surface-2);
+  border-radius: 10px;
+  border-left: 3px solid var(--ri-primary);
 }}
 .next-best-action strong {{
   color: var(--ri-text);
 }}
 .talk-track {{
   color: var(--ri-text-muted);
-  font-size: 12.5px;
+  font-size: 0.8125rem;
   font-style: italic;
-  margin-top: 6px;
-  padding: 6px 0;
+  margin-top: 8px;
+  padding: 8px 0;
 }}
 .guardrail-meta {{
   color: var(--ri-text-muted);

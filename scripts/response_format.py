@@ -144,6 +144,251 @@ def _talk_track(intent: str, row0: Dict) -> Optional[str]:
     return None
 
 
+def format_renewals_at_risk(
+    df: pd.DataFrame,
+    horizon_days: int,
+    health_threshold: float,
+    persona: str,
+) -> Dict:
+    """Build content contract for renewals_at_risk portfolio view. No KPI repetition in key_points."""
+    n = 0 if df is None or df.empty else len(df)
+    health_col = "health_score"
+    threshold = health_threshold
+    high_risk = (
+        df[df[health_col].astype(float) < threshold]
+        if (df is not None and not df.empty and health_col in df.columns)
+        else pd.DataFrame()
+    )
+    high_count = len(high_risk)
+    arr_col = "current_arr_eur"
+    at_risk_arr = high_risk[arr_col].sum() if arr_col in high_risk.columns and not high_risk.empty else 0
+    days_col = "days_to_renewal"
+    median_days = (
+        int(df[days_col].dropna().median())
+        if df is not None and not df.empty and days_col in df.columns and not df[days_col].dropna().empty
+        else None
+    )
+
+    title = f"Renewals at risk — next {horizon_days} days"
+    kpis = [
+        {"label": "Renewals", "value": str(n), "tone": "neutral"},
+        {"label": "High risk", "value": str(high_count), "tone": "bad" if high_count > 0 else "neutral"},
+        {"label": "ARR at risk", "value": f"€{at_risk_arr:,.0f}" if at_risk_arr else "€0", "tone": "warn" if at_risk_arr else "neutral"},
+        {"label": "Median days", "value": str(median_days) if median_days is not None else "—", "tone": "neutral"},
+    ]
+    summary = (
+        f"You have {n} renewals in the next {horizon_days} days. "
+        f"{high_count} are high risk representing €{at_risk_arr:,.0f} ARR."
+    )
+    if n == 0:
+        summary = f"No renewals at risk in the next {horizon_days} days."
+
+    driver_col = "primary_risk_driver"
+    key_points = []
+    if df is not None and not df.empty and driver_col in df.columns:
+        drivers = df[driver_col].dropna().value_counts()
+        if not drivers.empty:
+            top = drivers.index[0]
+            key_points.append(f"Primary driver distribution: {top} leads.")
+        if len(drivers) > 1:
+            key_points.append("Mix of risk drivers; prioritize by ARR and days to renewal.")
+    key_points.append("Start with highest ARR and lowest health score for outreach.")
+    key_points = key_points[:3]
+
+    next_best_action = (
+        "Start outreach with the top 3 ARR accounts flagged as high risk and confirm adoption plan this week."
+    )
+    if n == 0:
+        next_best_action = "No at-risk renewals in this window; keep monitoring health for the next horizon."
+
+    talk_track = (
+        "I’d like to align on a quick plan before your renewal so we can address any concerns in advance."
+        if persona == "Customer Success"
+        else None
+    )
+
+    followups = [
+        "Show me the top 10 by ARR at risk",
+        "Break down risk drivers",
+    ]
+    if df is not None and not df.empty and "account_name" in df.columns:
+        first_name = df.iloc[0]["account_name"]
+        if first_name:
+            followups.append(f"Open {first_name}")
+    followups = followups[:3]
+
+    return {
+        "title": title,
+        "kpis": kpis[:4],
+        "summary": summary,
+        "key_points": key_points[:3],
+        "next_best_action": next_best_action,
+        "talk_track": talk_track,
+        "followups": followups[:3],
+    }
+
+
+def format_expansion_shortlist(
+    df: pd.DataFrame,
+    top_n: int,
+    minimum_health: float,
+    persona: str,
+) -> Dict:
+    """Build content contract for expansion_shortlist portfolio view."""
+    n = 0 if df is None or df.empty else len(df)
+    arr_col = "current_arr_eur"
+    total_arr = df[arr_col].sum() if df is not None and not df.empty and arr_col in df.columns else 0
+    score_col = "expansion_score"
+    avg_score = (
+        df[score_col].mean()
+        if df is not None and not df.empty and score_col in df.columns and df[score_col].notna().any()
+        else None
+    )
+    health_col = "health_score"
+    healthy_count = (
+        (df[health_col].astype(float) >= minimum_health).sum()
+        if df is not None and not df.empty and health_col in df.columns
+        else 0
+    )
+    healthy_share = (100.0 * healthy_count / n) if n else 0
+
+    title = f"Expansion shortlist — top {top_n}"
+    kpis = [
+        {"label": "Candidates", "value": str(n), "tone": "neutral"},
+        {"label": "Total ARR", "value": f"€{total_arr:,.0f}" if total_arr else "€0", "tone": "neutral"},
+        {
+            "label": "Avg expansion score",
+            "value": f"{avg_score:.2f}" if avg_score is not None and avg_score == avg_score else "—",
+            "tone": "good" if avg_score is not None and avg_score >= 0.6 else "neutral",
+        },
+        {"label": "Healthy share", "value": f"{healthy_share:.0f}%", "tone": "neutral"},
+    ]
+    summary = (
+        f"You have {n} expansion candidates. "
+        f"Estimated focus set totals €{total_arr:,.0f} ARR with strong utilization signals."
+    )
+    if n == 0:
+        summary = f"No expansion candidates meeting health >= {minimum_health}."
+
+    angle_col = "recommended_angle"
+    key_points = []
+    if df is not None and not df.empty and angle_col in df.columns:
+        angles = df[angle_col].dropna().value_counts()
+        if not angles.empty:
+            top_angle = angles.index[0]
+            key_points.append(f"Recommended angle distribution: {top_angle} leads.")
+        if len(angles) > 1:
+            key_points.append("Mix of angles; prioritize by expansion score and ARR.")
+    key_points.append("Start with top ARR and highest expansion score; validate seat or module need.")
+    key_points = key_points[:3]
+
+    next_best_action = (
+        "Start with top 3 ARR accounts where expansion_score is highest and utilization is strong; "
+        "validate seat/module need."
+    )
+    if n == 0:
+        next_best_action = "No candidates in this filter; try lowering minimum health or broadening criteria."
+
+    talk_track = (
+        "I see strong usage and health—can we schedule a short call to explore adding seats or a module?"
+        if persona == "Customer Success"
+        else None
+    )
+
+    followups = [
+        "Show only health > 0.8",
+        "Group by recommended angle",
+    ]
+    if df is not None and not df.empty and "account_name" in df.columns:
+        first_name = df.iloc[0]["account_name"]
+        if first_name:
+            followups.append(f"Open {first_name}")
+    followups = followups[:3]
+
+    return {
+        "title": title,
+        "kpis": kpis[:4],
+        "summary": summary,
+        "key_points": key_points[:3],
+        "next_best_action": next_best_action,
+        "talk_track": talk_track,
+        "followups": followups[:3],
+    }
+
+
+def format_arr_exposure_overview(
+    df_bands: pd.DataFrame,
+    df_top: pd.DataFrame,
+    risk_threshold: float,
+    persona: str,
+) -> Dict:
+    """Build content contract for ARR exposure overview (CEO-level)."""
+    total_arr = 0.0
+    arr_at_risk = 0.0
+    accounts_at_risk = 0
+    if df_bands is not None and not df_bands.empty and "arr_eur" in df_bands.columns:
+        total_arr = df_bands["arr_eur"].sum()
+        red = df_bands[df_bands["health_band"].astype(str).str.lower() == "red"]
+        if not red.empty:
+            arr_at_risk = red["arr_eur"].sum()
+            accounts_at_risk = int(red["accounts_count"].sum()) if "accounts_count" in red.columns else 0
+    pct_at_risk = (100.0 * arr_at_risk / total_arr) if total_arr else 0.0
+    n_top = len(df_top) if df_top is not None and not df_top.empty else 0
+
+    title = "ARR exposure overview"
+    kpis = [
+        {"label": "Total ARR", "value": f"€{total_arr:,.0f}", "tone": "neutral"},
+        {"label": "ARR at risk", "value": f"€{arr_at_risk:,.0f}", "tone": "warn" if arr_at_risk else "neutral"},
+        {"label": "% at risk", "value": f"{pct_at_risk:.1f}%", "tone": "warn" if pct_at_risk > 0 else "neutral"},
+        {"label": "Accounts at risk", "value": str(accounts_at_risk), "tone": "warn" if accounts_at_risk else "neutral"},
+    ]
+    summary = (
+        f"{pct_at_risk:.1f}% of ARR is tied to accounts with health below {risk_threshold}. "
+        f"Biggest exposure is concentrated in the top {n_top} accounts."
+    )
+    if total_arr == 0:
+        summary = "No ARR exposure data available."
+
+    key_points = []
+    if df_bands is not None and not df_bands.empty:
+        band_dist = df_bands.set_index("health_band")["arr_eur"].to_dict() if "health_band" in df_bands.columns else {}
+        if band_dist:
+            key_points.append(f"Band distribution: green/yellow/red ARR split by health band.")
+        red_share = (100.0 * arr_at_risk / total_arr) if total_arr else 0
+        if red_share > 20:
+            key_points.append(f"Concentration: {red_share:.0f}% of ARR in at-risk band.")
+    if df_top is not None and not df_top.empty and "current_arr_eur" in df_top.columns:
+        top3_arr = df_top["current_arr_eur"].head(3).sum()
+        top3_share = (100.0 * top3_arr / total_arr) if total_arr else 0
+        key_points.append(f"Top 3 at-risk accounts represent {top3_share:.0f}% of total ARR.")
+    key_points = key_points[:3]
+
+    next_best_action = (
+        "Review top ARR at-risk accounts and assign owners + mitigation plan this week."
+    )
+    talk_track = (
+        "I’d like to align on a quick plan for the accounts with the highest exposure before renewal."
+        if persona == "Customer Success"
+        else None
+    )
+    followups = ["Show renewals at risk in the next 90 days", "Show expansion shortlist"]
+    if df_top is not None and not df_top.empty and "account_name" in df_top.columns:
+        first = df_top.iloc[0]["account_name"]
+        if first:
+            followups.append(f"Open {first}")
+    followups = followups[:3]
+
+    return {
+        "title": title,
+        "kpis": kpis[:4],
+        "summary": summary,
+        "key_points": key_points[:3],
+        "next_best_action": next_best_action,
+        "talk_track": talk_track,
+        "followups": followups[:3],
+    }
+
+
 def format_response(
     intent: str,
     raw_result: Dict,
