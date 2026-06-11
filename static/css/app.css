@@ -10,8 +10,8 @@
   --accent:   #e8d5b0;
   --accent2:  #c8a96e;
   --text:     #d4d0c8;
-  --muted:    #7a7870;
-  --dim:      #4a4844;
+  --muted:    #9b9792;
+  --dim:      #6b6865;
   --white:    #f0ece4;
   --green:    #4ade80;
   --yellow:   #fbbf24;
@@ -137,7 +137,7 @@ body {
 
 /* ─── Charts Row ───────────────────────────────────────────────── */
 .charts-row {
-  display: grid; grid-template-columns: 280px 1fr; gap: 1px;
+  display: grid; grid-template-columns: 240px 1fr 1fr; gap: 1px;
   background: var(--border); border: 1px solid var(--border);
   border-radius: 8px; overflow: hidden;
 }
@@ -150,6 +150,7 @@ body {
 .chart-wrap { position: relative; }
 .chart-donut-wrap { width: 180px; margin: 0 auto; }
 .chart-bar-wrap { height: 140px; }
+.chart-pipeline-wrap { height: 140px; }
 
 .donut-center {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);

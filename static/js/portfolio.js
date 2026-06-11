@@ -2,6 +2,7 @@
 
 let healthChart = null;
 let arrChart = null;
+let pipelineChart = null;
 
 async function loadPortfolio() {
   let data;
@@ -15,6 +16,7 @@ async function loadPortfolio() {
 
   renderKPIs(data.kpis);
   renderCharts(data.kpis, data.arr_bands);
+  renderRenewalPipeline(data.renewal_pipeline || []);
   renderRenewals(data.renewals_90d);
   renderRiskMatrix(data.risk_matrix);
 
@@ -135,12 +137,74 @@ function renderCharts(kpis, bands) {
       scales: {
         x: {
           grid: { color: '#232328' },
-          ticks: { color: '#7a7870', font: { family: 'JetBrains Mono', size: 10 }, callback: v => `€${v}k` },
+          ticks: { color: '#9b9792', font: { family: 'JetBrains Mono', size: 10 }, callback: v => `€${v}k` },
           border: { color: '#232328' },
         },
         y: {
           grid: { display: false },
           ticks: { color: '#d4d0c8', font: { family: 'Inter', size: 12 } },
+          border: { color: '#232328' },
+        },
+      },
+      animation: { duration: 600 },
+    },
+  });
+}
+
+function renderRenewalPipeline(pipeline) {
+  const ctx = document.getElementById('chart-renewal-pipeline');
+  if (!ctx) return;
+
+  const labels = pipeline.map(d => d.month);
+  const toK = v => Math.round(v / 1000);
+
+  if (pipelineChart) pipelineChart.destroy();
+  pipelineChart = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Healthy',
+          data: pipeline.map(d => toK(d.green)),
+          backgroundColor: 'rgba(74,222,128,0.75)',
+          borderRadius: 3,
+          borderSkipped: false,
+        },
+        {
+          label: 'At Risk',
+          data: pipeline.map(d => toK(d.yellow)),
+          backgroundColor: 'rgba(251,191,36,0.75)',
+          borderRadius: 3,
+          borderSkipped: false,
+        },
+        {
+          label: 'Critical',
+          data: pipeline.map(d => toK(d.red)),
+          backgroundColor: 'rgba(248,113,113,0.85)',
+          borderRadius: 3,
+          borderSkipped: false,
+        },
+      ],
+    },
+    options: {
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: €${ctx.raw}k` },
+        },
+      },
+      scales: {
+        x: {
+          stacked: true,
+          grid: { display: false },
+          ticks: { color: '#9b9792', font: { family: 'JetBrains Mono', size: 9 } },
+          border: { color: '#232328' },
+        },
+        y: {
+          stacked: true,
+          grid: { color: '#232328' },
+          ticks: { color: '#9b9792', font: { family: 'JetBrains Mono', size: 9 }, callback: v => `€${v}k` },
           border: { color: '#232328' },
         },
       },

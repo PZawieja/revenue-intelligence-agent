@@ -1,3 +1,6 @@
+from collections import defaultdict
+from datetime import date, datetime
+
 from fastapi import APIRouter
 from core.db import query
 
@@ -56,6 +59,36 @@ def get_portfolio():
         LIMIT 20
     """)
 
+    today = date.today()
+    pipeline_raw: dict[str, dict[str, float]] = defaultdict(lambda: {"green": 0.0, "yellow": 0.0, "red": 0.0})
+    for r in risk_rows:
+        rd = r.get("renewal_date")
+        if rd is None:
+            continue
+        if isinstance(rd, str):
+            try:
+                rd = date.fromisoformat(rd[:10])
+            except ValueError:
+                continue
+        elif hasattr(rd, "date"):
+            rd = rd.date()
+        days_out = (rd - today).days
+        if 0 <= days_out <= 180:
+            key = rd.strftime("%b %Y")
+            band = r.get("health_band") or "green"
+            pipeline_raw[key][band] += r.get("current_arr_eur") or 0
+
+    def _month_sort(m: str) -> datetime:
+        try:
+            return datetime.strptime(m, "%b %Y")
+        except ValueError:
+            return datetime.min
+
+    renewal_pipeline = [
+        {"month": m, "green": round(v["green"]), "yellow": round(v["yellow"]), "red": round(v["red"])}
+        for m, v in sorted(pipeline_raw.items(), key=lambda x: _month_sort(x[0]))
+    ]
+
     return {
         "kpis": {
             "total_arr": total_arr,
@@ -69,6 +102,7 @@ def get_portfolio():
             "next_renewal_name": next_renewal["account_name"] if next_renewal else None,
         },
         "arr_bands": arr_bands,
+        "renewal_pipeline": renewal_pipeline,
         "renewals_90d": renewals,
         "risk_matrix": risk_rows,
     }
