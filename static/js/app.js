@@ -15,9 +15,9 @@ function showView(name) {
 
   if (!_initialized[name]) {
     _initialized[name] = true;
-    if (name === 'portfolio') loadPortfolio();
-    if (name === 'accounts')  loadAccounts();
-    if (name === 'intelligence') initIntelligence();
+    if (name === 'portfolio' && window.loadPortfolio) window.loadPortfolio();
+    if (name === 'accounts'  && window.loadAccounts)  window.loadAccounts();
+    if (name === 'intelligence' && window.initIntelligence) window.initIntelligence();
   }
 }
 
@@ -60,5 +60,5 @@ function renewalClass(days) {
 // Expose to other modules
 window.App = { showView, fmtEur, fmtDays, healthDot, healthCls, renewalClass };
 
-// Boot — load portfolio on start
-showView('portfolio');
+// Boot after all scripts have loaded and executed
+document.addEventListener('DOMContentLoaded', () => showView('portfolio'));
