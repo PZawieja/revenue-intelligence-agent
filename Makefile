@@ -3,7 +3,7 @@ PY=$(VENV)/bin/python
 PIP=$(VENV)/bin/pip
 DBT=$(VENV)/bin/dbt
 
-.PHONY: setup deps seed build app dashboard
+.PHONY: setup deps seed build app
 
 setup:
 	python3 -m venv $(VENV)
@@ -11,16 +11,13 @@ setup:
 	$(PIP) install -r requirements.txt
 
 deps:
-	DBT_PROFILES_DIR=dbt $(DBT) deps --profiles-dir dbt
+	$(DBT) deps --project-dir dbt --profiles-dir dbt
 
 seed:
-	DBT_PROFILES_DIR=dbt $(DBT) seed --profiles-dir dbt
+	$(DBT) seed --project-dir dbt --profiles-dir dbt
 
 build:
-	DBT_PROFILES_DIR=dbt $(DBT) build --profiles-dir dbt
+	$(DBT) build --project-dir dbt --profiles-dir dbt
 
 app:
-	$(VENV)/bin/streamlit run app.py
-
-dashboard:
-	$(VENV)/bin/streamlit run dashboard.py
+	$(VENV)/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload

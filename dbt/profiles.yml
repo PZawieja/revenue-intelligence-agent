@@ -3,5 +3,5 @@ revenue_intelligence_agent:
   outputs:
     dev:
       type: duckdb
-      path: ../duckdb/revenue_intel.duckdb
+      path: duckdb/revenue_intel.duckdb
       schema: main

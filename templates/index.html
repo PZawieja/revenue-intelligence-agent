@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revenue Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+
+<!-- ─── Navigation ─────────────────────────────────────────────── -->
+<nav id="nav">
+  <div class="nav-inner">
+    <div class="nav-brand">
+      <span class="nav-diamond">◆</span>
+      <span class="nav-title">Revenue Intelligence</span>
+    </div>
+    <div class="nav-tabs" role="tablist">
+      <button class="nav-tab active" data-view="portfolio" role="tab">Portfolio</button>
+      <button class="nav-tab" data-view="accounts" role="tab">Accounts</button>
+      <button class="nav-tab" data-view="intelligence" role="tab">Intelligence</button>
+    </div>
+    <div class="nav-meta">
+      <span class="nav-badge" id="nav-account-count">—</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ─── Portfolio View ─────────────────────────────────────────── -->
+<div id="view-portfolio" class="view active">
+  <div class="view-inner">
+
+    <!-- KPI Strip -->
+    <div class="kpi-strip" id="kpi-strip">
+      <div class="kpi-card skeleton" id="kpi-arr">
+        <div class="kpi-label">Total ARR</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-sub">— accounts</div>
+      </div>
+      <div class="kpi-card skeleton" id="kpi-risk">
+        <div class="kpi-label">ARR at Risk</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-sub">— of portfolio</div>
+      </div>
+      <div class="kpi-card skeleton" id="kpi-red">
+        <div class="kpi-label">At-Risk Accounts</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-sub">— yellow · — green</div>
+      </div>
+      <div class="kpi-card skeleton" id="kpi-renewal">
+        <div class="kpi-label">Next Renewal</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-sub">—</div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="section-label">// health distribution</div>
+        <div class="chart-wrap chart-donut-wrap">
+          <canvas id="chart-health"></canvas>
+          <div class="donut-center" id="donut-center"></div>
+        </div>
+        <div class="chart-legend" id="chart-health-legend"></div>
+      </div>
+      <div class="chart-card chart-card-grow">
+        <div class="section-label">// arr by health band</div>
+        <div class="chart-wrap chart-bar-wrap">
+          <canvas id="chart-arr-bands"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Renewals 90d -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-label">// renewals next 90 days</span>
+        <span class="section-count" id="renewals-count"></span>
+      </div>
+      <div id="renewals-list" class="renewals-list">
+        <div class="empty-state">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Risk Matrix -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-label">// account risk matrix</span>
+        <span class="section-count" id="risk-matrix-count"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="risk-matrix">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Segment</th>
+              <th class="num">ARR</th>
+              <th>Health</th>
+              <th class="num">Usage ↓</th>
+              <th class="num">Tickets</th>
+              <th>Risk Driver</th>
+              <th class="num">Renews</th>
+            </tr>
+          </thead>
+          <tbody id="risk-matrix-body">
+            <tr><td colspan="8" class="loading-cell">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── Accounts View ──────────────────────────────────────────── -->
+<div id="view-accounts" class="view" hidden>
+  <div class="accounts-layout">
+
+    <!-- Table side -->
+    <div class="accounts-table-side" id="accounts-table-side">
+      <div class="accounts-toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input type="text" id="account-search" placeholder="Search accounts…" autocomplete="off">
+        </div>
+        <select id="filter-segment" class="toolbar-select">
+          <option value="">All segments</option>
+          <option value="SMB">SMB</option>
+          <option value="MidMarket">Mid-Market</option>
+          <option value="Enterprise">Enterprise</option>
+        </select>
+        <select id="filter-health" class="toolbar-select">
+          <option value="">All health</option>
+          <option value="red">● Red</option>
+          <option value="yellow">● Yellow</option>
+          <option value="green">● Green</option>
+        </select>
+        <span class="toolbar-count" id="accounts-count">—</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table" id="accounts-table">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Segment</th>
+              <th class="num">ARR</th>
+              <th>Health</th>
+              <th class="num">Renews</th>
+              <th>AE</th>
+            </tr>
+          </thead>
+          <tbody id="accounts-tbody">
+            <tr><td colspan="6" class="loading-cell">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Drilldown panel -->
+    <div id="account-panel" class="account-panel" hidden>
+      <button class="panel-close" id="panel-close" aria-label="Close">✕</button>
+
+      <div class="panel-header">
+        <div class="panel-health-dot" id="panel-health-dot">●</div>
+        <div>
+          <div class="panel-name" id="panel-name">—</div>
+          <div class="panel-meta" id="panel-meta">—</div>
+        </div>
+      </div>
+
+      <div class="panel-kpis">
+        <div class="panel-kpi">
+          <div class="panel-kpi-label">ARR</div>
+          <div class="panel-kpi-value" id="panel-arr">—</div>
+        </div>
+        <div class="panel-kpi">
+          <div class="panel-kpi-label">Health</div>
+          <div class="panel-kpi-value" id="panel-score">—</div>
+        </div>
+        <div class="panel-kpi">
+          <div class="panel-kpi-label">Renews</div>
+          <div class="panel-kpi-value" id="panel-renews">—</div>
+        </div>
+        <div class="panel-kpi">
+          <div class="panel-kpi-label">Utilization</div>
+          <div class="panel-kpi-value" id="panel-util">—</div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-section-label">// usage trend</div>
+        <div class="sparkline-wrap">
+          <canvas id="sparkline-chart" height="60"></canvas>
+        </div>
+        <div class="sparkline-caption" id="sparkline-caption"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-section-label">// risk signals</div>
+        <div id="panel-signals" class="panel-signals"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-section-label">// expansion</div>
+        <div class="panel-expansion" id="panel-expansion"></div>
+      </div>
+
+      <div class="panel-actions">
+        <button class="panel-action-btn" id="btn-ask-account">Ask Intelligence →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── Intelligence View ─────────────────────────────────────── -->
+<div id="view-intelligence" class="view" hidden>
+  <div class="chat-layout">
+
+    <div class="chat-context-bar">
+      <span class="chat-context-label">Context:</span>
+      <select id="chat-account-select" class="chat-account-select">
+        <option value="">Portfolio (no account)</option>
+      </select>
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-welcome">
+        <div class="chat-welcome-icon">◆</div>
+        <div class="chat-welcome-title">Revenue Intelligence</div>
+        <div class="chat-welcome-sub">Ask about accounts, renewals, health, or expansion. No API key required.</div>
+        <div class="chat-starters" id="chat-starters">
+          <button class="chat-starter" data-q="Show renewals at risk in the next 90 days">Renewals at risk</button>
+          <button class="chat-starter" data-q="Show expansion shortlist">Expansion shortlist</button>
+          <button class="chat-starter" data-q="ARR exposure by health band">ARR exposure</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input-bar">
+      <div class="chat-input-wrap">
+        <input type="text" id="chat-input" placeholder="Ask about an account or the portfolio…" autocomplete="off">
+        <button id="chat-send" class="chat-send-btn" aria-label="Send">
+          <span>↵</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/static/js/app.js"></script>
+<script src="/static/js/portfolio.js"></script>
+<script src="/static/js/accounts.js"></script>
+<script src="/static/js/chat.js"></script>
+</body>
+</html>
