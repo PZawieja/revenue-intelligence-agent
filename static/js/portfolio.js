@@ -205,3 +205,6 @@ function renderRiskMatrix(rows) {
 }
 
 window.loadPortfolio = loadPortfolio;
+
+// Default view — start loading immediately when this script runs
+loadPortfolio();

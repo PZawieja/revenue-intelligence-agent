@@ -1,7 +1,7 @@
 // SPA shell — view switching, shared utilities
 
 const VIEWS = ['portfolio', 'accounts', 'intelligence'];
-let _initialized = {};
+let _initialized = { portfolio: true }; // portfolio self-starts in portfolio.js
 
 function showView(name) {
   VIEWS.forEach(v => {
@@ -60,5 +60,5 @@ function renewalClass(days) {
 // Expose to other modules
 window.App = { showView, fmtEur, fmtDays, healthDot, healthCls, renewalClass };
 
-// Boot after all scripts have loaded and executed
-document.addEventListener('DOMContentLoaded', () => showView('portfolio'));
+// portfolio.js calls loadPortfolio() directly when it loads.
+// Nav tab clicks use showView() for lazy init of accounts + intelligence.
