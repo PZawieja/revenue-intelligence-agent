@@ -1,5 +1,6 @@
 from __future__ import annotations
 import copy
+import re
 from rapidfuzz import process, fuzz
 
 INTENT_PATTERNS: dict[str, list[str]] = {
@@ -39,6 +40,37 @@ _DEFAULT_PARAMS: dict[str, dict] = {
 }
 
 
+_RISK_WORDS = {"at risk", "at-risk", "risk", "risky", "churn", "danger", "critical", "struggling", "troubled"}
+
+
+def _extract_days(q: str) -> int | None:
+    m = re.search(r"next\s+(\d+)\s+days?", q) or re.search(r"in\s+(\d+)\s+days?", q)
+    if m:
+        return int(m.group(1))
+    m = re.search(r"(\d+)\s+days?", q)
+    if m:
+        return int(m.group(1))
+    if re.search(r"next\s+week|this\s+week", q):
+        return 7
+    if re.search(r"next\s+month|this\s+month", q):
+        return 30
+    if re.search(r"quarter", q):
+        return 90
+    return None
+
+
+def _extract_limit(q: str) -> int | None:
+    m = re.search(r"top\s+(\d+)", q)
+    if m:
+        return int(m.group(1))
+    m = re.search(r"(\d+)\s+accounts?", q)
+    if m:
+        n = int(m.group(1))
+        if 1 <= n <= 100:
+            return n
+    return None
+
+
 def extract_account(question: str, account_names: list[str]) -> str | None:
     if not account_names:
         return None
@@ -63,6 +95,22 @@ def detect_intent(question: str, account_names: list[str]) -> dict:
     params = copy.deepcopy(_DEFAULT_PARAMS[best])
     if "account_name" in params:
         params["account_name"] = account
+
+    if best == "renewals_at_risk":
+        days = _extract_days(q)
+        if days is not None:
+            params["horizon_days"] = days
+        limit = _extract_limit(q)
+        if limit is not None:
+            params["limit_n"] = limit
+        # Relax health filter when user asks about renewals generically (not specifically risky)
+        if not any(w in q for w in _RISK_WORDS):
+            params["health_threshold"] = 1.0
+
+    if best == "expansion_shortlist":
+        limit = _extract_limit(q)
+        if limit is not None:
+            params["top_n"] = limit
 
     return {
         "intent": best,

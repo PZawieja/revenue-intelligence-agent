@@ -46,10 +46,10 @@ function renderKPIs(k) {
   const redCard = document.getElementById('kpi-red');
   redCard.classList.remove('skeleton');
   redCard.innerHTML = `
-    <div class="kpi-label">At-Risk Accounts</div>
-    <div class="kpi-value${k.red_count > 5 ? ' danger' : ''}">${k.red_count} <span style="font-size:1rem;color:var(--muted)">●</span></div>
+    <div class="kpi-label">Account Health</div>
+    <div class="kpi-value${k.red_count > 5 ? ' danger' : ''}">${k.red_count}<span style="font-size:0.75rem;font-weight:400;color:var(--muted);margin-left:0.35rem">critical</span></div>
     <div class="kpi-sub">
-      <span class="dot-yellow">●</span> ${k.yellow_count} at risk &nbsp;
+      <span class="dot-yellow">●</span> ${k.yellow_count} warning &nbsp;
       <span class="dot-green">●</span> ${k.green_count} healthy
     </div>
   `;
@@ -73,7 +73,7 @@ function renderCharts(kpis, bands) {
   healthChart = new Chart(donutCtx, {
     type: 'doughnut',
     data: {
-      labels: ['Healthy', 'At Risk', 'Critical'],
+      labels: ['Healthy', 'Warning', 'Critical'],
       datasets: [{
         data: [green, yellow, red],
         backgroundColor: ['#4ade80', '#fbbf24', '#f87171'],
@@ -97,7 +97,7 @@ function renderCharts(kpis, bands) {
   if (legend) {
     legend.innerHTML = [
       { label: 'Healthy',   count: green,  cls: 'dot-green' },
-      { label: 'At Risk',   count: yellow, cls: 'dot-yellow' },
+      { label: 'Warning',   count: yellow, cls: 'dot-yellow' },
       { label: 'Critical',  count: red,    cls: 'dot-red' },
     ].map(row => `
       <div class="legend-row">
@@ -111,7 +111,7 @@ function renderCharts(kpis, bands) {
   const barCtx = document.getElementById('chart-arr-bands').getContext('2d');
   const orderedBands = ['green', 'yellow', 'red'];
   const bandMap = Object.fromEntries((bands || []).map(b => [b.health_band, b]));
-  const barLabels = ['Healthy', 'At Risk', 'Critical'];
+  const barLabels = ['Healthy', 'Warning', 'Critical'];
   const barValues = orderedBands.map(b => Math.round((bandMap[b]?.arr_eur || 0) / 1000));
   const barColors = ['#4ade80', '#fbbf24', '#f87171'];
 
@@ -172,7 +172,7 @@ function renderRenewalPipeline(pipeline) {
           borderSkipped: false,
         },
         {
-          label: 'At Risk',
+          label: 'Warning',
           data: pipeline.map(d => toK(d.yellow)),
           backgroundColor: 'rgba(251,191,36,0.80)',
           borderRadius: 3,

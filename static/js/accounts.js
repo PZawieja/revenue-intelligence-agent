@@ -40,7 +40,7 @@ function renderAccountsTable(rows) {
       <td>
         <div class="health-cell">
           ${healthDot(r.health_band)}
-          <span class="health-band-text ${window.App.healthCls(r.health_band)}">${{ green: 'Healthy', yellow: 'At Risk', red: 'Critical' }[r.health_band] || '—'}</span>
+          <span class="health-band-text ${window.App.healthCls(r.health_band)}">${{ green: 'Healthy', yellow: 'Warning', red: 'Critical' }[r.health_band] || '—'}</span>
         </div>
       </td>
       <td class="num td-mono renewal-days ${renewalClass(r.days_to_renewal)}">${fmtDays(r.days_to_renewal)}</td>
