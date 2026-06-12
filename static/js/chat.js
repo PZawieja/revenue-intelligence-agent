@@ -172,7 +172,10 @@ function buildEvidence(ev) {
       </button>
       <div class="evidence-body" hidden>
         <div class="guardrail-row">${badges}</div>
-        <pre class="evidence-sql">${escHtml(ev.sql)}</pre>
+        <div class="evidence-sql-wrap">
+          <button class="sql-copy-btn" onclick="copySQL(this)" data-sql="${escAttr(ev.sql)}">Copy</button>
+          <pre class="evidence-sql">${escHtml(ev.sql)}</pre>
+        </div>
       </div>
     </div>
   `;
@@ -186,6 +189,16 @@ function toggleEvidence(btn) {
   arrow.classList.toggle('open', !isOpen);
 }
 window.toggleEvidence = toggleEvidence;
+
+function copySQL(btn) {
+  const sql = btn.dataset.sql;
+  navigator.clipboard.writeText(sql).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+window.copySQL = copySQL;
 
 function bandFromScore(d) {
   // Try to derive band from title or rows

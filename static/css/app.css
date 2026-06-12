@@ -138,6 +138,7 @@ body {
 /* ─── Charts Row ───────────────────────────────────────────────── */
 .charts-row {
   display: grid; grid-template-columns: 240px 1fr 1fr; gap: 1px;
+  min-height: 320px;
   background: var(--border); border: 1px solid var(--border);
   border-radius: 8px; overflow: hidden;
 }
@@ -149,8 +150,10 @@ body {
 
 .chart-wrap { position: relative; }
 .chart-donut-wrap { width: 180px; margin: 0 auto; }
-.chart-bar-wrap { height: 140px; }
-.chart-pipeline-wrap { height: 140px; }
+.chart-bar-wrap { height: 160px; }
+.chart-pipeline-wrap { height: 160px; }
+.chart-card-grow { flex: 1; }
+.chart-card-grow .chart-wrap { flex: 1; min-height: 160px; }
 
 .donut-center {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
@@ -535,13 +538,28 @@ body {
   display: flex; flex-direction: column; gap: 0.75rem;
 }
 
+.evidence-sql-wrap { position: relative; }
+
 .evidence-sql {
   font-family: var(--mono); font-size: 0.72rem;
-  color: var(--muted); background: var(--surface2);
+  color: var(--text); background: var(--surface2);
   border: 1px solid var(--border); border-radius: 4px;
-  padding: 0.75rem; overflow-x: auto; white-space: pre;
+  padding: 0.75rem 3rem 0.75rem 0.75rem;
+  overflow-x: auto; white-space: pre;
   line-height: 1.6; max-height: 200px; overflow-y: auto;
 }
+
+.sql-copy-btn {
+  position: absolute; top: 0.4rem; right: 0.4rem;
+  font-family: var(--mono); font-size: 0.62rem;
+  background: var(--surface); color: var(--dim);
+  border: 1px solid var(--border2); border-radius: 3px;
+  padding: 0.18rem 0.45rem; cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.sql-copy-btn:hover { color: var(--accent); background: var(--surface2); border-color: var(--accent2); }
+.sql-copy-btn.copied { color: var(--green); border-color: var(--green); }
 
 .guardrail-row {
   display: flex; gap: 0.5rem; flex-wrap: wrap;
