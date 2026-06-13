@@ -552,13 +552,21 @@ body {
   50%       { opacity: 0.75; text-shadow: 0 0 12px rgba(200,169,110,0.4); }
 }
 
-.intel-agent-badge {
-  font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--accent2); margin-bottom: 0.6rem;
-}
 .intel-welcome-heading {
-  font-size: 1.5rem; font-weight: 700; color: var(--white);
-  letter-spacing: -0.02em; margin-bottom: 0.45rem;
+  font-size: 1.9rem; font-weight: 700; color: var(--white);
+  letter-spacing: -0.02em; margin-bottom: 0.5rem;
+}
+.intel-wave {
+  display: inline-block;
+  animation: waveHand 1.8s ease-in-out 0.3s 2;
+  transform-origin: 70% 80%;
+}
+@keyframes waveHand {
+  0%, 100% { transform: rotate(0deg); }
+  20%       { transform: rotate(20deg); }
+  40%       { transform: rotate(-10deg); }
+  60%       { transform: rotate(18deg); }
+  80%       { transform: rotate(-8deg); }
 }
 .intel-welcome-sub {
   font-size: 0.85rem; color: var(--muted); max-width: 400px; line-height: 1.65;
