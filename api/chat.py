@@ -137,12 +137,16 @@ def chat_snapshot():
         ORDER BY days_to_renewal ASC
         LIMIT 1
     """)
-    top_exp = query("""
-        SELECT account_name, expansion_score
-        FROM ai_fct_expansion_shortlist
-        WHERE health_score >= 0.6
-        ORDER BY expansion_score DESC NULLS LAST
-        LIMIT 1
+    exp = query("""
+        SELECT COUNT(*) AS cnt,
+               MAX(CASE WHEN rn = 1 THEN account_name END) AS top_name,
+               MAX(CASE WHEN rn = 1 THEN expansion_score END) AS top_score
+        FROM (
+            SELECT account_name, expansion_score,
+                   ROW_NUMBER() OVER (ORDER BY expansion_score DESC NULLS LAST) AS rn
+            FROM ai_fct_expansion_shortlist
+            WHERE health_score >= 0.6
+        ) t
     """)
     return {
         "at_risk_count": red[0]["cnt"] if red else 0,
@@ -150,8 +154,9 @@ def chat_snapshot():
         "urgent_renewals": urgent[0]["cnt"] if urgent else 0,
         "urgent_account": urgent_next[0]["account_name"] if urgent_next else None,
         "urgent_days": urgent_next[0]["days_to_renewal"] if urgent_next else None,
-        "top_expansion_name": top_exp[0]["account_name"] if top_exp else None,
-        "top_expansion_score": top_exp[0]["expansion_score"] if top_exp else None,
+        "expansion_count": exp[0]["cnt"] if exp else 0,
+        "top_expansion_name": exp[0]["top_name"] if exp else None,
+        "top_expansion_score": exp[0]["top_score"] if exp else None,
     }
 
 

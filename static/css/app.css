@@ -552,16 +552,16 @@ body {
   50%       { opacity: 0.75; text-shadow: 0 0 12px rgba(200,169,110,0.4); }
 }
 
-.intel-welcome-heading {
-  font-size: 1.15rem; font-weight: 600; color: var(--white);
-  letter-spacing: -0.01em; margin-bottom: 0.25rem;
+.intel-agent-badge {
+  font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--accent2); margin-bottom: 0.6rem;
 }
-.intel-welcome-greeting {
-  font-family: var(--mono); font-size: 0.72rem; color: var(--accent2);
-  letter-spacing: 0.04em; margin-bottom: 0.3rem;
+.intel-welcome-heading {
+  font-size: 1.5rem; font-weight: 700; color: var(--white);
+  letter-spacing: -0.02em; margin-bottom: 0.45rem;
 }
 .intel-welcome-sub {
-  font-size: 0.83rem; color: var(--muted); max-width: 380px; line-height: 1.6;
+  font-size: 0.85rem; color: var(--muted); max-width: 400px; line-height: 1.65;
   margin-bottom: 2rem;
 }
 

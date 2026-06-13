@@ -22,7 +22,7 @@ INTENT_PATTERNS: dict[str, list[str]] = {
     ],
     "expansion_shortlist": [
         "shortlist", "candidates", "opportunities", "pipeline",
-        "best accounts", "top accounts", "who should",
+        "best accounts", "top accounts", "who should", "expansion",
     ],
     "arr_exposure_overview": [
         "arr", "exposure", "portfolio", "breakdown", "distribution",

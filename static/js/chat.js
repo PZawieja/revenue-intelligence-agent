@@ -20,11 +20,7 @@ async function initIntelligence() {
 }
 
 function setWelcomeGreeting() {
-  const el = document.getElementById('intel-welcome-greeting');
-  if (!el) return;
-  const hr = new Date().getHours();
-  const greeting = hr < 12 ? 'Good morning.' : hr < 17 ? 'Good afternoon.' : 'Good evening.';
-  el.textContent = greeting;
+  // sub-text is populated after snapshot loads with real account count
 }
 
 async function loadAccountNames() {
@@ -116,14 +112,23 @@ async function loadSnapshot() {
     expCard.classList.remove('snapshot-loading');
     expCard.classList.add('good');
     expCard.querySelector('.snapshot-icon').textContent = '↑';
-    if (d.top_expansion_name) {
-      expCard.querySelector('.snapshot-value').textContent = d.top_expansion_name.split(' ').slice(0, 2).join(' ');
-      expCard.querySelector('.snapshot-label').textContent = `Top expansion · score ${(d.top_expansion_score || 0).toFixed(2)}`;
+    if (d.expansion_count > 0) {
+      expCard.querySelector('.snapshot-value').textContent = `${d.expansion_count} candidates`;
+      const topLabel = d.top_expansion_name
+        ? `Top: ${d.top_expansion_name.split(' ').slice(0, 2).join(' ')} · ${(d.top_expansion_score || 0).toFixed(2)}`
+        : 'Expansion opportunities ready';
+      expCard.querySelector('.snapshot-label').textContent = topLabel;
     } else {
       expCard.querySelector('.snapshot-value').textContent = '—';
       expCard.querySelector('.snapshot-label').textContent = 'No expansion candidates';
     }
     expCard.addEventListener('click', () => sendMessage('Show expansion shortlist'));
+
+    const subEl = document.getElementById('intel-welcome-sub');
+    if (subEl) {
+      const totalAccounts = (d.at_risk_count || 0) + (d.urgent_renewals !== undefined ? 50 : 0);
+      subEl.textContent = `I've got your portfolio loaded — tell me what to look at first.`;
+    }
   } catch (e) {
     console.error('Snapshot failed', e);
   }
