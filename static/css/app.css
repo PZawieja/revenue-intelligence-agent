@@ -942,6 +942,17 @@ body {
 }
 .chat-card-error .chat-narrative { color: var(--red); font-size: 0.85rem; }
 
+.error-retry-btn {
+  margin-top: 0.25rem;
+  padding: 0.4rem 0.9rem;
+  background: transparent; border: 1px solid rgba(248,113,113,0.3);
+  color: var(--red); font-family: var(--mono); font-size: 0.72rem;
+  border-radius: 5px; cursor: pointer; transition: all 0.15s;
+}
+.error-retry-btn:hover {
+  background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.5);
+}
+
 /* Legacy selectors (keep for Chat / Intelligence compat) */
 .chat-message-user { display: flex; justify-content: flex-end; }
 .chat-starters { display: none; }

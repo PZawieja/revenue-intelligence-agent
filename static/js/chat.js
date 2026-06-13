@@ -248,7 +248,7 @@ async function sendMessage(text) {
     const data = await res.json();
 
     if (data.error) {
-      finalizeCardError(cardEl, data.narrative || 'Unknown error');
+      finalizeCardError(cardEl, data.narrative || 'Unknown error', text);
     } else {
       setCardStatus(cardEl, data.status || 'Processing…');
       await typewriterNarrative(cardEl, data.narrative || '');
@@ -257,7 +257,7 @@ async function sendMessage(text) {
       if (chatHistory.length > 12) chatHistory = chatHistory.slice(-12);
     }
   } catch (err) {
-    finalizeCardError(cardEl, 'Something went wrong — ' + err.message);
+    finalizeCardError(cardEl, 'Something went wrong — ' + err.message, text);
   }
 
   sendBtn.disabled = false;
@@ -399,7 +399,7 @@ function finalizeCard(wrapper, data) {
   }
 }
 
-function finalizeCardError(wrapper, msg) {
+function finalizeCardError(wrapper, msg, originalQuestion) {
   const card = wrapper.querySelector('.chat-card');
   if (card) card.classList.add('chat-card-error');
   const cursor = wrapper.querySelector('#_ccursor');
@@ -407,11 +407,25 @@ function finalizeCardError(wrapper, msg) {
   const status = wrapper.querySelector('#_cstatus');
   if (status) status.remove();
   const narrative = wrapper.querySelector('#_cnarrative');
-  if (narrative) { narrative.style.display = ''; }
+  if (narrative) narrative.style.display = '';
   const txt = wrapper.querySelector('#_cnarr-text');
   if (txt) txt.textContent = msg;
   const titleEl = wrapper.querySelector('#_ctitle');
   if (titleEl) titleEl.textContent = 'Error';
+
+  if (originalQuestion) {
+    const body = wrapper.querySelector('#_cbody');
+    if (body) {
+      const btn = document.createElement('button');
+      btn.className = 'error-retry-btn';
+      btn.textContent = '↺ Try again';
+      btn.addEventListener('click', () => {
+        wrapper.remove();
+        sendMessage(originalQuestion);
+      });
+      body.appendChild(btn);
+    }
+  }
 }
 
 // ─── Inline tables ──────────────────────────────────────────────────
