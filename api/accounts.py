@@ -6,8 +6,13 @@ router = APIRouter(prefix="/api")
 
 @router.get("/accounts/names")
 def account_names():
-    rows = query("SELECT account_id, account_name FROM ai_dm_account_overview ORDER BY account_name")
-    return [{"id": r["account_id"], "name": r["account_name"]} for r in rows]
+    rows = query("""
+        SELECT ao.account_id, ao.account_name, h.health_band
+        FROM ai_dm_account_overview ao
+        LEFT JOIN ai_fct_account_health_score h ON ao.account_id = h.account_id
+        ORDER BY ao.account_name
+    """)
+    return [{"id": r["account_id"], "name": r["account_name"], "health": r.get("health_band")} for r in rows]
 
 
 @router.get("/accounts")

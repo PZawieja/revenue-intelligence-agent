@@ -4,6 +4,9 @@ let healthChart = null;
 let arrChart = null;
 let pipelineChart = null;
 
+let allRenewals = [];
+let allRiskRows = [];
+
 async function loadPortfolio() {
   let data;
   try {
@@ -19,6 +22,7 @@ async function loadPortfolio() {
   renderRenewalPipeline(data.renewal_pipeline || []);
   renderRenewals(data.renewals_90d);
   renderRiskMatrix(data.risk_matrix);
+  wirePortfolioControls();
 
   const badge = document.getElementById('nav-account-count');
   if (badge) badge.textContent = `${data.kpis.total_accounts} accounts`;
@@ -64,7 +68,6 @@ function renderKPIs(k) {
 }
 
 function renderCharts(kpis, bands) {
-  // Donut — health distribution
   const donutCtx = document.getElementById('chart-health').getContext('2d');
   const green = kpis.green_count, yellow = kpis.yellow_count, red = kpis.red_count;
   const total = green + yellow + red;
@@ -107,7 +110,6 @@ function renderCharts(kpis, bands) {
     `).join('');
   }
 
-  // Horizontal bar — ARR by band
   const barCtx = document.getElementById('chart-arr-bands').getContext('2d');
   const orderedBands = ['green', 'yellow', 'red'];
   const bandMap = Object.fromEntries((bands || []).map(b => [b.health_band, b]));
@@ -215,17 +217,37 @@ function renderRenewalPipeline(pipeline) {
   });
 }
 
+// ─── Renewals ───────────────────────────────────────────────────────
+
 function renderRenewals(renewals) {
+  allRenewals = renewals || [];
+  const ctrl = document.getElementById('renewals-limit-ctrl');
+  if (ctrl) ctrl.style.display = allRenewals.length > 0 ? '' : 'none';
+  applyRenewalsLimit(10);
+}
+
+function applyRenewalsLimit(n) {
   const { fmtEur, fmtDays, healthDot, renewalClass } = window.App;
   const list = document.getElementById('renewals-list');
-  const count = document.getElementById('renewals-count');
-  if (!renewals || renewals.length === 0) {
+  const countEl = document.getElementById('renewals-count');
+  const allBtn = document.getElementById('renewals-all-btn');
+  const input = document.getElementById('renewals-limit-input');
+
+  if (!allRenewals.length) {
     list.innerHTML = '<div class="empty-state">No at-risk renewals in the next 90 days.</div>';
-    if (count) count.textContent = '0';
+    if (countEl) countEl.textContent = '0';
     return;
   }
-  if (count) count.textContent = renewals.length;
-  list.innerHTML = renewals.map(r => `
+
+  const limit = Math.max(1, Math.min(n, allRenewals.length));
+  const rows = allRenewals.slice(0, limit);
+  const showingAll = limit >= allRenewals.length;
+
+  if (countEl) countEl.textContent = `${rows.length} of ${allRenewals.length}`;
+  if (input) input.value = limit;
+  if (allBtn) allBtn.textContent = showingAll ? 'Collapse' : `Show all (${allRenewals.length})`;
+
+  list.innerHTML = rows.map(r => `
     <div class="renewal-row">
       <div class="renewal-name">${r.account_name}</div>
       <div>${healthDot(r.health_band)}</div>
@@ -237,15 +259,36 @@ function renderRenewals(renewals) {
   `).join('');
 }
 
+// ─── Risk Matrix ────────────────────────────────────────────────────
+
 function renderRiskMatrix(rows) {
+  allRiskRows = rows || [];
+  const ctrl = document.getElementById('risk-limit-ctrl');
+  if (ctrl) ctrl.style.display = allRiskRows.length > 0 ? '' : 'none';
+  applyRiskLimit(10);
+}
+
+function applyRiskLimit(n) {
   const { fmtEur, fmtDays, healthDot, renewalClass } = window.App;
   const tbody = document.getElementById('risk-matrix-body');
-  const count = document.getElementById('risk-matrix-count');
-  if (!rows || rows.length === 0) {
+  const countEl = document.getElementById('risk-matrix-count');
+  const allBtn = document.getElementById('risk-all-btn');
+  const input = document.getElementById('risk-limit-input');
+
+  if (!allRiskRows.length) {
     tbody.innerHTML = '<tr><td colspan="8" class="loading-cell">No data.</td></tr>';
+    if (countEl) countEl.textContent = '0';
     return;
   }
-  if (count) count.textContent = rows.length;
+
+  const limit = Math.max(1, Math.min(n, allRiskRows.length));
+  const rows = allRiskRows.slice(0, limit);
+  const showingAll = limit >= allRiskRows.length;
+
+  if (countEl) countEl.textContent = `${rows.length} of ${allRiskRows.length}`;
+  if (input) input.value = limit;
+  if (allBtn) allBtn.textContent = showingAll ? 'Collapse' : `Show all (${allRiskRows.length})`;
+
   tbody.innerHTML = rows.map(r => {
     const usagePct = r.usage_drop_ratio !== null && r.usage_drop_ratio !== undefined
       ? `${Math.round(r.usage_drop_ratio * 100)}%`
@@ -270,7 +313,38 @@ function renderRiskMatrix(rows) {
   }).join('');
 }
 
+// ─── Control wiring ─────────────────────────────────────────────────
+
+function wirePortfolioControls() {
+  const rInput = document.getElementById('renewals-limit-input');
+  const rBtn   = document.getElementById('renewals-all-btn');
+  if (rInput) {
+    rInput.addEventListener('change', () => applyRenewalsLimit(parseInt(rInput.value) || 10));
+    rInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyRenewalsLimit(parseInt(rInput.value) || 10); });
+  }
+  if (rBtn) {
+    rBtn.addEventListener('click', () => {
+      const cur = parseInt(rInput?.value) || 10;
+      const next = cur >= allRenewals.length ? 10 : allRenewals.length;
+      applyRenewalsLimit(next);
+    });
+  }
+
+  const mInput = document.getElementById('risk-limit-input');
+  const mBtn   = document.getElementById('risk-all-btn');
+  if (mInput) {
+    mInput.addEventListener('change', () => applyRiskLimit(parseInt(mInput.value) || 10));
+    mInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyRiskLimit(parseInt(mInput.value) || 10); });
+  }
+  if (mBtn) {
+    mBtn.addEventListener('click', () => {
+      const cur = parseInt(mInput?.value) || 10;
+      const next = cur >= allRiskRows.length ? 10 : allRiskRows.length;
+      applyRiskLimit(next);
+    });
+  }
+}
+
 window.loadPortfolio = loadPortfolio;
 
-// Default view — start loading immediately when this script runs
 loadPortfolio();

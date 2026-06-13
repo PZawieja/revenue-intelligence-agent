@@ -86,7 +86,12 @@
     <div class="section">
       <div class="section-header">
         <span class="section-label">// renewals next 90 days</span>
-        <span class="section-count" id="renewals-count"></span>
+        <div class="section-limit-ctrl" id="renewals-limit-ctrl" style="display:none">
+          <span class="limit-showing" id="renewals-count">—</span>
+          <span class="limit-sep">·</span>
+          <input type="number" class="limit-input" id="renewals-limit-input" value="10" min="1" title="Number of rows to show">
+          <button class="limit-all-btn" id="renewals-all-btn">Show all</button>
+        </div>
       </div>
       <div id="renewals-list" class="renewals-list">
         <div class="empty-state">Loading…</div>
@@ -97,7 +102,12 @@
     <div class="section">
       <div class="section-header">
         <span class="section-label">// account risk matrix</span>
-        <span class="section-count" id="risk-matrix-count"></span>
+        <div class="section-limit-ctrl" id="risk-limit-ctrl" style="display:none">
+          <span class="limit-showing" id="risk-matrix-count">—</span>
+          <span class="limit-sep">·</span>
+          <input type="number" class="limit-input" id="risk-limit-input" value="10" min="1" title="Number of rows to show">
+          <button class="limit-all-btn" id="risk-all-btn">Show all</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table class="data-table" id="risk-matrix">
@@ -227,35 +237,98 @@
 
 <!-- ─── Intelligence View ─────────────────────────────────────── -->
 <div id="view-intelligence" class="view" hidden>
-  <div class="chat-layout">
+  <div class="intel-layout">
 
-    <div class="chat-context-bar">
-      <span class="chat-context-label">Context:</span>
-      <select id="chat-account-select" class="chat-account-select">
-        <option value="">Portfolio (no account)</option>
-      </select>
+    <!-- Context bar -->
+    <div class="intel-context-bar">
+      <div class="intel-context-left">
+        <span class="intel-context-label">Account</span>
+        <div class="intel-account-wrap">
+          <span class="intel-account-dot" id="intel-account-dot">○</span>
+          <select id="chat-account-select" class="chat-account-select">
+            <option value="">Portfolio view</option>
+          </select>
+        </div>
+        <button class="intel-clear-btn" id="intel-clear-btn" title="Clear account context">✕</button>
+      </div>
+      <div class="intel-context-right">
+        <button class="intel-new-conv-btn" id="intel-new-conv-btn" title="Start new conversation" style="display:none">
+          ↺ New
+        </button>
+        <button class="ai-toggle" id="ai-toggle" title="Toggle AI narrative" aria-pressed="false">
+          <span class="ai-toggle-dot">◆</span>
+          <span class="ai-toggle-label">AI</span>
+        </button>
+      </div>
     </div>
 
-    <div class="chat-messages" id="chat-messages">
-      <div class="chat-welcome">
-        <div class="chat-welcome-icon">◆</div>
-        <div class="chat-welcome-title">Revenue Intelligence</div>
-        <div class="chat-welcome-sub">Ask about accounts, renewals, health, or expansion. No API key required.</div>
-        <div class="chat-starters" id="chat-starters">
-          <button class="chat-starter" data-q="Show renewals at risk in the next 90 days">Renewals at risk</button>
-          <button class="chat-starter" data-q="Show expansion shortlist">Expansion shortlist</button>
-          <button class="chat-starter" data-q="ARR exposure by health band">ARR exposure</button>
+    <!-- Messages -->
+    <div class="intel-messages" id="chat-messages">
+      <!-- Welcome screen (hidden after first message) -->
+      <div class="intel-welcome" id="intel-welcome">
+        <div class="intel-avatar">
+          <span class="intel-avatar-diamond">◆</span>
+        </div>
+        <div class="intel-welcome-heading">Piotr · Revenue Intelligence</div>
+        <div class="intel-welcome-greeting" id="intel-welcome-greeting"></div>
+        <div class="intel-welcome-sub">Your portfolio is loaded. What would you like to explore?</div>
+
+        <!-- Live snapshot cards -->
+        <div class="intel-snapshot" id="intel-snapshot">
+          <div class="snapshot-card snapshot-loading" id="snap-risk">
+            <div class="snapshot-icon">◎</div>
+            <div class="snapshot-value">—</div>
+            <div class="snapshot-label">Loading…</div>
+          </div>
+          <div class="snapshot-card snapshot-loading" id="snap-renewals">
+            <div class="snapshot-icon">⊙</div>
+            <div class="snapshot-value">—</div>
+            <div class="snapshot-label">Loading…</div>
+          </div>
+          <div class="snapshot-card snapshot-loading" id="snap-expansion">
+            <div class="snapshot-icon">↑</div>
+            <div class="snapshot-value">—</div>
+            <div class="snapshot-label">Loading…</div>
+          </div>
+        </div>
+
+        <!-- Grouped starter questions -->
+        <div class="intel-starters">
+          <div class="starter-group">
+            <div class="starter-group-label">// one account</div>
+            <div class="starter-chips">
+              <button class="intel-starter" data-q="Is this account healthy?">Health check</button>
+              <button class="intel-starter" data-q="What is the expansion potential?">Expansion fit</button>
+              <button class="intel-starter" data-q="Give me an account overview">Account overview</button>
+            </div>
+          </div>
+          <div class="starter-group">
+            <div class="starter-group-label">// portfolio</div>
+            <div class="starter-chips">
+              <button class="intel-starter" data-q="Show renewals at risk in the next 90 days">Renewals at risk</button>
+              <button class="intel-starter" data-q="Show expansion shortlist">Expansion shortlist</button>
+              <button class="intel-starter" data-q="ARR exposure by health band">ARR exposure</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="chat-input-bar">
-      <div class="chat-input-wrap">
-        <input type="text" id="chat-input" placeholder="Ask about an account or the portfolio…" autocomplete="off">
-        <button id="chat-send" class="chat-send-btn" aria-label="Send">
+    <!-- Input bar -->
+    <div class="intel-input-bar">
+      <div class="intel-input-wrap">
+        <input
+          type="text"
+          id="chat-input"
+          class="intel-input"
+          placeholder="Ask about an account or your portfolio…"
+          autocomplete="off"
+        >
+        <button id="chat-send" class="intel-send-btn" aria-label="Send">
           <span>↵</span>
         </button>
       </div>
+      <div class="intel-input-hint">Enter to send · select an account above for account-specific questions</div>
     </div>
 
   </div>

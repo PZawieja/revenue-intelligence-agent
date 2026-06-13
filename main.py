@@ -1,11 +1,14 @@
 from pathlib import Path
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from api.portfolio import router as portfolio_router
-from api.accounts import router as accounts_router
-from api.chat import router as chat_router
+load_dotenv()
+
+from api.portfolio import router as portfolio_router  # noqa: E402
+from api.accounts import router as accounts_router  # noqa: E402
+from api.chat import router as chat_router  # noqa: E402
 
 app = FastAPI(title="Revenue Intelligence Agent", docs_url=None, redoc_url=None)
 

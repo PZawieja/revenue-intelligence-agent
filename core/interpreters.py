@@ -109,6 +109,9 @@ def interpret_renewals_at_risk(row: dict, rows: list[dict]) -> dict:
     ]
     if urgent:
         bullets.append(f"{len(urgent)} account(s) renewing within 30 days — act now.")
+    closest = min(rows, key=lambda r: r.get("days_to_renewal") or 999)
+    closest_days = closest.get("days_to_renewal", "?")
+    closest_arr = _eur(closest.get("current_arr_eur"))
     return {
         "title": f"Renewals at risk — {len(rows)} accounts",
         "narrative": (
@@ -117,7 +120,7 @@ def interpret_renewals_at_risk(row: dict, rows: list[dict]) -> dict:
             f"Prioritize by renewal date."
         ),
         "bullets": bullets,
-        "next_action": "Start with the closest renewal date — book calls this week.",
+        "next_action": f"Start with {closest['account_name']} — {closest_days}d to renewal, {closest_arr} at stake. Book a call today.",
     }
 
 

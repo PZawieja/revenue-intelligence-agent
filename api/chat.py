@@ -1,5 +1,8 @@
-import duckdb
+from __future__ import annotations
+import os
 from typing import Optional
+
+import duckdb
 from fastapi import APIRouter
 from pydantic import BaseModel
 
@@ -8,6 +11,7 @@ from core.intent import detect_intent
 from core.guardrails import compute_guardrails
 from core.interpreters import interpret
 from core.question_packs import FOLLOWUP_SUGGESTIONS
+from core.llm import STATUS_MESSAGES, generate_insight
 
 router = APIRouter(prefix="/api")
 
@@ -65,19 +69,20 @@ SQL_TEMPLATES: dict[str, str] = {
 class ChatRequest(BaseModel):
     question: str
     account_id: Optional[str] = None
+    history: list[dict] = []
+    use_ai: bool = True
 
 
-@router.post("/chat")
-def chat(req: ChatRequest):
+def _resolve_request(question: str, account_id: Optional[str]):
     accounts_raw = query("SELECT account_id, account_name FROM ai_dm_account_overview ORDER BY account_name")
     account_names = [r["account_name"] for r in accounts_raw]
     allowed = {r["asset_name"] for r in query("SELECT asset_name FROM dim_ai_allowed_assets WHERE is_allowed_for_ai")}
 
-    parsed = detect_intent(req.question, account_names)
+    parsed = detect_intent(question, account_names)
     intent = parsed["intent"]
 
-    if req.account_id and not parsed["account_name"]:
-        acc = query_one("SELECT account_name FROM ai_dm_account_overview WHERE account_id = ?", [req.account_id])
+    if account_id and not parsed["account_name"]:
+        acc = query_one("SELECT account_name FROM ai_dm_account_overview WHERE account_id = ?", [account_id])
         if acc:
             parsed["account_name"] = acc["account_name"]
             if "account_name" in parsed["params"]:
@@ -85,26 +90,16 @@ def chat(req: ChatRequest):
 
     needs_account = intent in ("account_overview", "health_summary", "expansion_potential")
     if needs_account and not parsed.get("account_name"):
-        return {
-            "intent": intent,
-            "account_name": None,
-            "title": "Account not found",
-            "narrative": "I couldn't identify an account in your question. Try mentioning the account name, or select one from the context bar.",
-            "bullets": [],
-            "next_action": "",
-            "followups": FOLLOWUP_SUGGESTIONS.get(intent, []),
-            "evidence": {"sql": "", "guardrails": {}},
-            "rows": [],
-        }
+        return None, intent, parsed, None, allowed, "Account not identified — select one from the dropdown or mention the account name."
 
     template = SQL_TEMPLATES.get(intent)
     if not template:
-        return {"error": f"No template for intent: {intent}"}
+        return None, intent, parsed, None, allowed, f"No template for intent: {intent}"
 
     try:
         sql = template.format(**parsed["params"])
     except KeyError as e:
-        return {"error": f"Missing parameter: {e}"}
+        return None, intent, parsed, None, allowed, f"Missing parameter: {e}"
 
     try:
         con = duckdb.connect(str(DB_PATH), read_only=True)
@@ -113,20 +108,84 @@ def chat(req: ChatRequest):
         rows = [dict(zip(cols, row)) for row in res.fetchall()]
         con.close()
     except Exception as exc:
-        return {"error": str(exc), "intent": intent}
+        return None, intent, parsed, None, allowed, str(exc)
 
     guardrails = compute_guardrails(sql, allowed, (len(rows), len(cols) if cols else 0))
-    interpreted = interpret(intent, rows[0] if rows else {}, rows)
-    followups = FOLLOWUP_SUGGESTIONS.get(intent, [])[:3]
+    return rows, intent, parsed, {"sql": sql.strip(), "guardrails": guardrails}, allowed, None
+
+
+@router.get("/chat/config")
+def chat_config():
+    return {"ai_available": bool(os.environ.get("ANTHROPIC_API_KEY"))}
+
+
+@router.get("/chat/snapshot")
+def chat_snapshot():
+    red = query("""
+        SELECT COUNT(*) AS cnt, COALESCE(SUM(current_arr_eur), 0) AS arr
+        FROM ai_arr_exposure WHERE health_band = 'red'
+    """)
+    urgent = query("""
+        SELECT COUNT(*) AS cnt
+        FROM ai_fct_renewals_at_risk
+        WHERE days_to_renewal BETWEEN 0 AND 30
+    """)
+    urgent_next = query("""
+        SELECT account_name, days_to_renewal
+        FROM ai_fct_renewals_at_risk
+        WHERE days_to_renewal BETWEEN 0 AND 30
+        ORDER BY days_to_renewal ASC
+        LIMIT 1
+    """)
+    top_exp = query("""
+        SELECT account_name, expansion_score
+        FROM ai_fct_expansion_shortlist
+        WHERE health_score >= 0.6
+        ORDER BY expansion_score DESC NULLS LAST
+        LIMIT 1
+    """)
+    return {
+        "at_risk_count": red[0]["cnt"] if red else 0,
+        "at_risk_arr": red[0]["arr"] if red else 0,
+        "urgent_renewals": urgent[0]["cnt"] if urgent else 0,
+        "urgent_account": urgent_next[0]["account_name"] if urgent_next else None,
+        "urgent_days": urgent_next[0]["days_to_renewal"] if urgent_next else None,
+        "top_expansion_name": top_exp[0]["account_name"] if top_exp else None,
+        "top_expansion_score": top_exp[0]["expansion_score"] if top_exp else None,
+    }
+
+
+@router.post("/chat")
+def chat(req: ChatRequest):
+    req.question = req.question.strip()[:400]
+    rows, intent, parsed, evidence, allowed, error = _resolve_request(req.question, req.account_id)
+
+    if error:
+        return {
+            "intent": intent,
+            "account_name": parsed.get("account_name") if parsed else None,
+            "title": "Account not identified" if "Account" in error else "Error",
+            "narrative": error,
+            "bullets": [],
+            "next_action": "",
+            "followups": FOLLOWUP_SUGGESTIONS.get(intent, []) if parsed else [],
+            "evidence": {"sql": "", "guardrails": {}},
+            "rows": [],
+            "error": True,
+        }
+
+    insight = generate_insight(intent, rows, req.question, parsed.get("account_name"), req.history, req.use_ai)
+    interpreted_title = interpret(intent, rows[0] if rows else {}, rows)["title"]
 
     return {
         "intent": intent,
         "account_name": parsed.get("account_name"),
-        "title": interpreted["title"],
-        "narrative": interpreted["narrative"],
-        "bullets": interpreted["bullets"],
-        "next_action": interpreted.get("next_action", ""),
-        "followups": followups,
-        "evidence": {"sql": sql.strip(), "guardrails": guardrails},
+        "title": interpreted_title,
+        "narrative": insight.get("narrative", ""),
+        "bullets": insight.get("bullets", []),
+        "next_action": insight.get("next_action", ""),
+        "followups": insight.get("followups", []),
+        "evidence": evidence,
         "rows": rows,
+        "status": STATUS_MESSAGES.get(intent, "Thinking…"),
     }
