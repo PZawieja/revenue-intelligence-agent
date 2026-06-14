@@ -4,7 +4,7 @@
 
 Built for RevOps and CS teams managing B2B SaaS portfolios. Surfaces churn risk, flags usage anomalies, and generates copy-pasteable outreach assets — all from a single, fast, locally-running application.
 
-<!-- INSERT HERO GIF: full-page walkthrough showing briefing → intelligence → action asset -->
+![Revenue Intelligence Dashboard](docs/screenshots/dashboard.png)
 
 ---
 
@@ -65,29 +65,19 @@ Most CS dashboards show you what happened. This one tells you **what to do about
 ### Daily Briefing (Proactive CSM Panel)
 Loads automatically on the Portfolio view. Three AI-generated insight cards — one Critical, one Warning, one Opportunity — each with a one-click action that fires the relevant Intelligence query. Falls back to heuristic insights when no AI key is present.
 
-<!-- INSERT SCREENSHOT: briefing-panel.png — the three insight cards with action buttons -->
-
 ### Portfolio Intelligence Dashboard
 - **KPI strip** — Total ARR, ARR at Risk, health distribution, next renewal countdown (with inline tooltips explaining each metric)
 - **Health donut** + **ARR-by-band bar chart** + **stacked renewal pipeline** — 6-month forward view
 - **Renewals 90-day list** + **full account risk matrix** — both with row-limit controls
 
-<!-- INSERT SCREENSHOT: portfolio-overview.png -->
-
 ### Account Drilldown
 Click any row in the Accounts table to open an instant side panel: usage sparkline (coloured by drop severity), risk signals, expansion score, and "Ask Intelligence →" that carries the account context into the chat view.
-
-<!-- INSERT SCREENSHOT: account-drilldown.png -->
 
 ### Intelligence Agent (Natural Language Chat)
 Type any question in plain English. Intent detection maps it to one of six SQL templates. If `ANTHROPIC_API_KEY` is set, Claude generates a narrative, bullet points, and a next action. Every response shows an expandable Evidence accordion with the exact SQL and guardrail badges (SELECT-only · Allowlisted · No PII · Row limit).
 
-<!-- INSERT SCREENSHOT: intelligence-chat.png -->
-
 ### Next-Best-Action Assets
 After any AI response, three buttons appear — **→ Email draft**, **# Slack alert**, **≡ CRM note**. One click calls Claude with the account context and returns a copy-pasteable asset inline. No modal, no page change, no clipboard gymnastics.
-
-<!-- INSERT SCREENSHOT: action-asset.png — expanded email draft panel -->
 
 ### Usage Anomaly Detection
 Compares early-period active-user averages against recent-period averages for every account with sufficient data. Accounts with >30% drops surface automatically in the Daily Briefing and can be interrogated directly via the Intelligence agent.
