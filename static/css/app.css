@@ -989,6 +989,183 @@ body {
 }
 
 
+/* ─── Daily Briefing Strip ─────────────────────────────────────── */
+.briefing-strip {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.briefing-head {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.65rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(200,169,110,0.03);
+}
+
+.briefing-head-left { display: flex; align-items: center; gap: 0.6rem; flex: 1; min-width: 0; }
+
+.briefing-icon { color: var(--accent2); font-size: 0.55rem; }
+
+.briefing-label {
+  font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--accent2); font-weight: 600;
+  white-space: nowrap;
+}
+
+.briefing-date {
+  font-family: var(--mono); font-size: 0.62rem; color: var(--dim);
+  white-space: nowrap;
+}
+
+.briefing-ai-badge {
+  font-family: var(--mono); font-size: 0.54rem; letter-spacing: 0.08em;
+  background: rgba(200,169,110,0.1); border: 1px solid rgba(200,169,110,0.25);
+  color: var(--accent2); border-radius: 3px; padding: 0.1rem 0.35rem;
+  white-space: nowrap;
+}
+
+.briefing-toggle-btn {
+  background: none; border: 1px solid var(--border); color: var(--dim);
+  width: 22px; height: 22px; border-radius: 4px; cursor: pointer;
+  font-size: 0.9rem; line-height: 1; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.briefing-toggle-btn:hover { color: var(--muted); border-color: var(--border2); }
+
+.briefing-body { padding: 1rem 1.25rem; }
+.briefing-body.collapsed { display: none; }
+
+.briefing-insights {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;
+}
+
+/* Insight cards */
+.insight-card {
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 0.9rem 1rem; background: var(--surface2);
+  display: flex; flex-direction: column; gap: 0.55rem;
+  position: relative; overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+.insight-card:hover { border-color: var(--border2); background: #1e1e24; }
+
+.insight-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.insight-card.critical::before  { background: var(--red); }
+.insight-card.warning::before   { background: var(--yellow); }
+.insight-card.opportunity::before { background: var(--green); }
+
+.insight-category {
+  font-family: var(--mono); font-size: 0.57rem; letter-spacing: 0.1em;
+  text-transform: uppercase; font-weight: 600;
+}
+.insight-card.critical .insight-category   { color: var(--red); }
+.insight-card.warning .insight-category    { color: var(--yellow); }
+.insight-card.opportunity .insight-category { color: var(--green); }
+
+.insight-title {
+  font-size: 0.82rem; font-weight: 600; color: var(--white); line-height: 1.35;
+}
+
+.insight-body {
+  font-size: 0.78rem; color: var(--muted); line-height: 1.55; flex: 1;
+}
+
+.insight-action-btn {
+  align-self: flex-start;
+  padding: 0.28rem 0.7rem;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); font-family: var(--sans); font-size: 0.74rem;
+  border-radius: 4px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  margin-top: 0.1rem;
+}
+.insight-card.critical .insight-action-btn:hover {
+  color: var(--red); border-color: rgba(248,113,113,0.4);
+  background: rgba(248,113,113,0.06);
+}
+.insight-card.warning .insight-action-btn:hover {
+  color: var(--yellow); border-color: rgba(251,191,36,0.4);
+  background: rgba(251,191,36,0.06);
+}
+.insight-card.opportunity .insight-action-btn:hover {
+  color: var(--green); border-color: rgba(74,222,128,0.4);
+  background: rgba(74,222,128,0.06);
+}
+
+.insight-skeleton {
+  opacity: 0.35; min-height: 100px; pointer-events: none;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@media (max-width: 900px) {
+  .briefing-insights { grid-template-columns: 1fr; }
+}
+
+/* ─── Chat Action Buttons ───────────────────────────────────────── */
+.chat-actions {
+  display: flex; gap: 0.4rem; flex-wrap: wrap;
+  padding-top: 0.6rem; border-top: 1px solid var(--border);
+  opacity: 0; animation: bulletFadeIn 0.3s ease-out 0.45s forwards;
+}
+
+.chat-action-btn {
+  padding: 0.28rem 0.7rem;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--dim); font-family: var(--mono); font-size: 0.64rem;
+  letter-spacing: 0.04em;
+  border-radius: 4px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.chat-action-btn:hover {
+  color: var(--accent2); border-color: rgba(200,169,110,0.3);
+  background: rgba(200,169,110,0.05);
+}
+.chat-action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Action result panel */
+.chat-action-result {
+  border-top: 1px solid var(--border);
+  padding: 0.8rem 1rem;
+  display: flex; flex-direction: column; gap: 0.5rem;
+  animation: bulletFadeIn 0.25s ease-out;
+}
+
+.action-result-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+}
+
+.action-result-label {
+  font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--accent2);
+}
+
+.action-copy-btn {
+  font-family: var(--mono); font-size: 0.62rem; padding: 0.18rem 0.5rem;
+  background: var(--surface); border: 1px solid var(--border2);
+  color: var(--dim); border-radius: 3px; cursor: pointer;
+  transition: all 0.15s; white-space: nowrap; flex-shrink: 0;
+}
+.action-copy-btn:hover { color: var(--accent); border-color: var(--accent2); }
+.action-copy-btn.copied { color: var(--green); border-color: var(--green); }
+
+.action-result-subject {
+  font-size: 0.8rem; font-weight: 600; color: var(--white);
+  border-bottom: 1px solid var(--border); padding-bottom: 0.35rem;
+}
+
+.action-result-body {
+  font-family: var(--sans); font-size: 0.79rem; color: var(--text);
+  line-height: 1.7; white-space: pre-wrap;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 5px; padding: 0.7rem 0.9rem;
+  max-height: 320px; overflow-y: auto;
+}
+
+.action-result-error { font-size: 0.8rem; color: var(--red); }
+
 /* ─── Empty State ──────────────────────────────────────────────── */
 .empty-state {
   padding: 2rem; text-align: center;

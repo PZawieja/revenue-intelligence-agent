@@ -34,6 +34,26 @@
 <div id="view-portfolio" class="view active">
   <div class="view-inner">
 
+    <!-- Daily Briefing -->
+    <div class="briefing-strip" id="briefing-strip">
+      <div class="briefing-head">
+        <div class="briefing-head-left">
+          <span class="briefing-icon">◆</span>
+          <span class="briefing-label">Daily Briefing</span>
+          <span class="briefing-date" id="briefing-date"></span>
+          <span class="briefing-ai-badge" id="briefing-ai-badge" hidden>AI</span>
+        </div>
+        <button class="briefing-toggle-btn" id="briefing-toggle-btn" aria-label="Collapse briefing" title="Collapse">−</button>
+      </div>
+      <div class="briefing-body" id="briefing-body">
+        <div class="briefing-insights" id="briefing-insights">
+          <div class="insight-card insight-skeleton"><div class="insight-body">Loading…</div></div>
+          <div class="insight-card insight-skeleton"><div class="insight-body">Loading…</div></div>
+          <div class="insight-card insight-skeleton"><div class="insight-body">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+
     <!-- KPI Strip -->
     <div class="kpi-strip" id="kpi-strip">
       <div class="kpi-card skeleton" id="kpi-arr">

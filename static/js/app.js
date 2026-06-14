@@ -57,8 +57,16 @@ function renewalClass(days) {
   return '';
 }
 
+function escHtml(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function escAttr(s) {
+  return String(s || '').replace(/"/g, '&quot;');
+}
+
 // Expose to other modules
-window.App = { showView, fmtEur, fmtDays, healthDot, healthCls, renewalClass };
+window.App = { showView, fmtEur, fmtDays, healthDot, healthCls, renewalClass, escHtml, escAttr };
 
 // portfolio.js calls loadPortfolio() directly when it loads.
 // Nav tab clicks use showView() for lazy init of accounts + intelligence.

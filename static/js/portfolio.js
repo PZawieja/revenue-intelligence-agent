@@ -23,6 +23,7 @@ async function loadPortfolio() {
   renderRenewals(data.renewals_90d);
   renderRiskMatrix(data.risk_matrix);
   wirePortfolioControls();
+  loadBriefing();
 
   const badge = document.getElementById('nav-account-count');
   if (badge) badge.textContent = `${data.kpis.total_accounts} accounts`;
@@ -34,7 +35,7 @@ function renderKPIs(k) {
   const arrCard = document.getElementById('kpi-arr');
   arrCard.classList.remove('skeleton');
   arrCard.innerHTML = `
-    <div class="kpi-label">Total ARR</div>
+    <div class="kpi-label" title="Annual Recurring Revenue — total predictable yearly revenue from all active subscriptions.">Total ARR</div>
     <div class="kpi-value">${fmtEur(k.total_arr)}</div>
     <div class="kpi-sub">${k.total_accounts} accounts</div>
   `;
@@ -42,7 +43,7 @@ function renderKPIs(k) {
   const riskCard = document.getElementById('kpi-risk');
   riskCard.classList.remove('skeleton');
   riskCard.innerHTML = `
-    <div class="kpi-label">ARR at Risk</div>
+    <div class="kpi-label" title="ARR from Critical-band accounts (health score below 0.50) — revenue at immediate churn risk without intervention.">ARR at Risk</div>
     <div class="kpi-value${k.arr_at_risk_pct > 25 ? ' danger' : k.arr_at_risk_pct > 10 ? ' warn' : ''}">${fmtEur(k.arr_at_risk)}</div>
     <div class="kpi-sub">${k.arr_at_risk_pct}% of portfolio</div>
   `;
@@ -50,7 +51,7 @@ function renderKPIs(k) {
   const redCard = document.getElementById('kpi-red');
   redCard.classList.remove('skeleton');
   redCard.innerHTML = `
-    <div class="kpi-label">Account Health</div>
+    <div class="kpi-label" title="Composite health score (0–1) from usage trends, open tickets, unpaid invoices, and renewal proximity. Critical &lt;0.50 · Warning 0.50–0.75 · Healthy &gt;0.75.">Account Health</div>
     <div class="kpi-value${k.red_count > 5 ? ' danger' : ''}">${k.red_count}<span style="font-size:0.75rem;font-weight:400;color:var(--muted);margin-left:0.35rem">critical</span></div>
     <div class="kpi-sub">
       <span class="dot-yellow">●</span> ${k.yellow_count} warning &nbsp;
@@ -61,7 +62,7 @@ function renderKPIs(k) {
   const renewCard = document.getElementById('kpi-renewal');
   renewCard.classList.remove('skeleton');
   renewCard.innerHTML = `
-    <div class="kpi-label">Next Renewal</div>
+    <div class="kpi-label" title="Days until the nearest upcoming contract renewal. Under 30 days requires immediate action; under 7 days is critical.">Next Renewal</div>
     <div class="kpi-value${k.next_renewal_days <= 7 ? ' danger' : k.next_renewal_days <= 30 ? ' warn' : ''}">${fmtDays(k.next_renewal_days)}</div>
     <div class="kpi-sub">${k.next_renewal_name || '—'}</div>
   `;
@@ -344,6 +345,84 @@ function wirePortfolioControls() {
     });
   }
 }
+
+// ─── Briefing ───────────────────────────────────────────────────────
+
+async function loadBriefing() {
+  const dateEl = document.getElementById('briefing-date');
+  if (dateEl) {
+    const today = new Date();
+    dateEl.textContent = today.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+
+  try {
+    const res = await fetch('/api/briefing');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderBriefing(data);
+  } catch (e) {
+    console.error('Briefing load failed', e);
+    const insights = document.getElementById('briefing-insights');
+    if (insights) insights.innerHTML = '<div style="color:var(--dim);font-size:0.78rem;font-family:var(--mono)">Briefing unavailable.</div>';
+  }
+}
+
+function renderBriefing(data) {
+  const { escHtml, escAttr } = window.App;
+  const insightsEl = document.getElementById('briefing-insights');
+  const aiBadge = document.getElementById('briefing-ai-badge');
+
+  if (!insightsEl) return;
+
+  if (data.ai_generated && aiBadge) aiBadge.hidden = false;
+
+  if (!data.insights || !data.insights.length) {
+    insightsEl.innerHTML = '<div style="color:var(--dim);font-size:0.78rem;font-family:var(--mono)">No briefing data.</div>';
+    return;
+  }
+
+  insightsEl.innerHTML = data.insights.map(ins => {
+    const cat = ins.category || 'warning';
+    const actionBtn = ins.action_label
+      ? `<button class="insight-action-btn" onclick="triggerInsightAction(this)" data-q="${escAttr(ins.action_query || ins.action_label)}">${escHtml(ins.action_label)}</button>`
+      : '';
+    return `
+      <div class="insight-card ${escHtml(cat)}">
+        <div class="insight-category">${escHtml(cat)}</div>
+        <div class="insight-title">${escHtml(ins.title)}</div>
+        <div class="insight-body">${escHtml(ins.body)}</div>
+        ${actionBtn}
+      </div>
+    `;
+  }).join('');
+
+  const toggleBtn = document.getElementById('briefing-toggle-btn');
+  const briefingBody = document.getElementById('briefing-body');
+  if (toggleBtn && briefingBody) {
+    const collapsed = localStorage.getItem('briefing_collapsed') === 'true';
+    if (collapsed) {
+      briefingBody.classList.add('collapsed');
+      toggleBtn.textContent = '+';
+    }
+    toggleBtn.addEventListener('click', () => {
+      const isCollapsed = briefingBody.classList.toggle('collapsed');
+      toggleBtn.textContent = isCollapsed ? '+' : '−';
+      localStorage.setItem('briefing_collapsed', String(isCollapsed));
+    });
+  }
+}
+
+function triggerInsightAction(btn) {
+  const q = btn.dataset.q;
+  if (!q) return;
+  window._pendingIntelQuery = q;
+  window.App.showView('intelligence');
+  if (window._intelInitialized && window.sendMessage) {
+    window._pendingIntelQuery = null;
+    setTimeout(() => window.sendMessage(q), 50);
+  }
+}
+window.triggerInsightAction = triggerInsightAction;
 
 window.loadPortfolio = loadPortfolio;
 

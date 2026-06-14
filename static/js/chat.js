@@ -17,6 +17,13 @@ async function initIntelligence() {
   wireInput();
   wireStarters();
   wireNewConversation();
+
+  window._intelInitialized = true;
+  if (window._pendingIntelQuery) {
+    const q = window._pendingIntelQuery;
+    window._pendingIntelQuery = null;
+    setTimeout(() => sendMessage(q), 200);
+  }
 }
 
 function setWelcomeGreeting() {
@@ -393,6 +400,24 @@ function finalizeCard(wrapper, data) {
     body.appendChild(fups);
   }
 
+  if (data.narrative && data.narrative.length > 20) {
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'chat-actions';
+    [
+      { type: 'email',    label: '→ Email draft' },
+      { type: 'slack',    label: '# Slack alert' },
+      { type: 'crm_note', label: '≡ CRM note' },
+    ].forEach(({ type, label }) => {
+      const btn = document.createElement('button');
+      btn.className = 'chat-action-btn';
+      btn.textContent = label;
+      btn.dataset.type = type;
+      btn.addEventListener('click', () => triggerActionAsset(btn, wrapper, data, type));
+      actionsDiv.appendChild(btn);
+    });
+    body.appendChild(actionsDiv);
+  }
+
   if (data.evidence && data.evidence.sql) {
     const card = wrapper.querySelector('.chat-card');
     card.appendChild(buildEvidence(data.evidence));
@@ -561,6 +586,83 @@ function userBubble(text) {
   return el;
 }
 
+// ─── Action Assets ──────────────────────────────────────────────────
+
+async function triggerActionAsset(clickedBtn, wrapper, data, actionType) {
+  wrapper.querySelectorAll('.chat-action-result').forEach(el => el.remove());
+
+  const allBtns = wrapper.querySelectorAll('.chat-action-btn');
+  const labelMap = { email: '→ Email draft', slack: '# Slack alert', crm_note: '≡ CRM note' };
+  allBtns.forEach(b => { b.disabled = true; });
+  clickedBtn.textContent = '…';
+
+  try {
+    const res = await fetch('/api/action-asset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action_type: actionType,
+        intent: data.intent || '',
+        account_name: data.account_name || null,
+        narrative: data.narrative || '',
+        bullets: data.bullets || [],
+        next_action: data.next_action || '',
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const result = await res.json();
+    renderActionResult(wrapper, actionType, result.error ? null : result.content, result.error ? result.message : null);
+  } catch (err) {
+    renderActionResult(wrapper, actionType, null, 'Failed to generate — ' + err.message);
+  }
+
+  allBtns.forEach(b => { b.disabled = false; b.textContent = labelMap[b.dataset.type] || b.textContent; });
+}
+
+function renderActionResult(wrapper, actionType, content, errorMsg) {
+  const card = wrapper.querySelector('.chat-card');
+  if (!card) return;
+
+  const typeLabels = { email: 'Email draft', slack: 'Slack message', crm_note: 'CRM note' };
+  const label = typeLabels[actionType] || 'Asset';
+
+  const panel = document.createElement('div');
+  panel.className = 'chat-action-result';
+
+  if (errorMsg) {
+    panel.innerHTML = `
+      <div class="action-result-header">
+        <span class="action-result-label">// ${escHtml(label)}</span>
+      </div>
+      <div class="action-result-error">${escHtml(errorMsg)}</div>
+    `;
+  } else {
+    const subject = content?.subject || '';
+    const body = content?.body || '';
+    const fullText = subject ? `Subject: ${subject}\n\n${body}` : body;
+    panel.innerHTML = `
+      <div class="action-result-header">
+        <span class="action-result-label">// ${escHtml(label)}</span>
+        <button class="action-copy-btn" onclick="copyActionResult(this)" data-content="${escAttr(fullText)}">Copy</button>
+      </div>
+      ${subject ? `<div class="action-result-subject">${escHtml(subject)}</div>` : ''}
+      <div class="action-result-body">${escHtml(body)}</div>
+    `;
+  }
+
+  card.appendChild(panel);
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function copyActionResult(btn) {
+  navigator.clipboard.writeText(btn.dataset.content).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+window.copyActionResult = copyActionResult;
+
 // ─── Helpers ────────────────────────────────────────────────────────
 
 function fmtEur(v) {
@@ -591,3 +693,4 @@ function scrollToBottom() {
 }
 
 window.initIntelligence = initIntelligence;
+window.sendMessage = sendMessage;

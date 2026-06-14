@@ -2,6 +2,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -133,3 +134,224 @@ def generate_insight(
         logger.warning("LLM generation failed (%s): %s", intent, exc)
         fallback = interpret(intent, rows[0] if rows else {}, rows)
         return {**fallback, "followups": FOLLOWUP_SUGGESTIONS.get(intent, [])[:3]}
+
+
+# ─── Briefing ──────────────────────────────────────────────────────────────
+
+BRIEFING_SYSTEM = """You are Piotr, an AI Revenue Intelligence Partner. Generate a proactive daily briefing for a CS Manager.
+Analyse the provided portfolio data and return exactly 3 actionable insights as JSON.
+
+Each insight must be immediately actionable and reference specific account names or numbers from the data.
+Categories: "critical" (churn risk / red accounts), "warning" (usage drops / renewal urgency), "opportunity" (expansion / healthy growth).
+
+Return ONLY valid JSON — no text outside:
+{"insights":[{"category":"critical"|"warning"|"opportunity","title":"short title max 8 words","body":"1-2 sentence insight with specific names and numbers","action_label":"short CTA 3-5 words","action_query":"exact question for the intelligence agent"}]}"""
+
+
+ACTION_SYSTEM = """You are Piotr, an AI Revenue Intelligence Partner. Generate a professional, copy-pasteable business asset.
+Be specific and concise. Reference the actual account name and situation provided.
+
+For email: write a professional follow-up (Subject + Body, 3 paragraphs max).
+For slack: one paragraph, professional but conversational.
+For crm_note: structured bullet points, factual, no filler.
+
+Return ONLY valid JSON. For email: {"subject":"...","body":"..."}. For slack and crm_note: {"body":"..."}."""
+
+
+def _eur_str(val: Any) -> str:
+    v = int(val or 0)
+    if v >= 1_000_000:
+        return f"€{v / 1_000_000:.1f}M"
+    if v >= 1_000:
+        return f"€{v / 1_000:.0f}k"
+    return f"€{v}"
+
+
+def _parse_llm_json(raw: str) -> dict:
+    if raw.startswith("```"):
+        parts = raw.split("```")
+        raw = parts[1] if len(parts) > 1 else raw
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+    return json.loads(raw)
+
+
+def _briefing_fallback(
+    arr_data: list[dict],
+    urgent_renewals: list[dict],
+    top_expansion: list[dict],
+    anomalies: list[dict],
+) -> dict:
+    band_map = {r["health_band"]: r for r in arr_data}
+    red = band_map.get("red", {})
+    insights: list[dict] = []
+
+    if urgent_renewals:
+        names = ", ".join(r["account_name"].split()[0] for r in urgent_renewals[:2])
+        insights.append({
+            "category": "critical",
+            "title": f"{len(urgent_renewals)} renewal{'s' if len(urgent_renewals) > 1 else ''} expiring within 14 days",
+            "body": f"{names} {'and others are' if len(urgent_renewals) > 1 else 'is'} renewing imminently — contact now to secure the contract.",
+            "action_label": "Show renewals →",
+            "action_query": "Show renewals at risk in the next 14 days",
+        })
+    elif red:
+        insights.append({
+            "category": "critical",
+            "title": f"{red.get('cnt', 0)} accounts in Critical health",
+            "body": f"{_eur_str(red.get('arr_eur', 0))} ARR at churn risk. Prioritise outreach to these accounts today.",
+            "action_label": "View ARR exposure →",
+            "action_query": "Show ARR exposure by health band",
+        })
+
+    if anomalies:
+        top = anomalies[0]
+        drop_pct = int((top.get("drop_ratio") or 0) * 100)
+        insights.append({
+            "category": "warning",
+            "title": f"Usage anomaly: {top['account_name'].split()[0]} dropped {drop_pct}%",
+            "body": (
+                f"{top['account_name']} active users fell {drop_pct}% from early-period baseline — "
+                f"{_eur_str(top['current_arr_eur'])} ARR. Investigate before next renewal."
+            ),
+            "action_label": "Check health →",
+            "action_query": f"Is {top['account_name']} healthy?",
+        })
+    else:
+        band_map_y = band_map.get("yellow", {})
+        insights.append({
+            "category": "warning",
+            "title": f"{band_map_y.get('cnt', 0)} accounts in Warning band",
+            "body": f"{_eur_str(band_map_y.get('arr_eur', 0))} ARR showing moderate risk. Proactive outreach now prevents churn.",
+            "action_label": "ARR breakdown →",
+            "action_query": "Show ARR exposure by health band",
+        })
+
+    if top_expansion:
+        top = top_expansion[0]
+        insights.append({
+            "category": "opportunity",
+            "title": f"Expansion opening: {top['account_name'].split()[0]}",
+            "body": (
+                f"{top['account_name']} scores {(top['expansion_score'] or 0):.2f} for expansion — "
+                f"{top.get('recommended_angle', 'high seat utilisation')}."
+            ),
+            "action_label": "Expansion shortlist →",
+            "action_query": "Show expansion shortlist",
+        })
+    else:
+        insights.append({
+            "category": "opportunity",
+            "title": "Identify expansion candidates",
+            "body": "Healthy accounts with high seat utilisation are primed for an upgrade conversation.",
+            "action_label": "Expansion shortlist →",
+            "action_query": "Show expansion shortlist",
+        })
+
+    return {"insights": insights[:3], "ai_generated": False}
+
+
+def generate_briefing(
+    arr_data: list[dict],
+    urgent_renewals: list[dict],
+    top_expansion: list[dict],
+    anomalies: list[dict],
+) -> dict:
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return _briefing_fallback(arr_data, urgent_renewals, top_expansion, anomalies)
+
+    try:
+        from anthropic import Anthropic
+        client = Anthropic(api_key=api_key)
+
+        band_map = {r["health_band"]: r for r in arr_data}
+        red = band_map.get("red", {})
+        yellow = band_map.get("yellow", {})
+        green = band_map.get("green", {})
+        total_arr = sum(r.get("arr_eur") or 0 for r in arr_data)
+
+        parts = [
+            f"Portfolio: {sum(r['cnt'] for r in arr_data)} accounts, {_eur_str(total_arr)} total ARR",
+            f"Critical (red): {red.get('cnt', 0)} accounts, {_eur_str(red.get('arr_eur', 0))} ARR",
+            f"Warning (yellow): {yellow.get('cnt', 0)} accounts, {_eur_str(yellow.get('arr_eur', 0))} ARR",
+            f"Healthy (green): {green.get('cnt', 0)} accounts, {_eur_str(green.get('arr_eur', 0))} ARR",
+        ]
+        if urgent_renewals:
+            lines = [f"  - {r['account_name']}: {r['days_to_renewal']}d, {_eur_str(r['current_arr_eur'])}" for r in urgent_renewals]
+            parts.append("Urgent renewals (<=14 days):\n" + "\n".join(lines))
+        if top_expansion:
+            lines = [f"  - {r['account_name']}: score {(r['expansion_score'] or 0):.2f}, {r.get('recommended_angle', '')}" for r in top_expansion]
+            parts.append("Top expansion candidates:\n" + "\n".join(lines))
+        if anomalies:
+            lines = [f"  - {r['account_name']}: {int((r['drop_ratio'] or 0)*100)}% usage drop, {_eur_str(r['current_arr_eur'])}" for r in anomalies]
+            parts.append("Usage anomalies detected:\n" + "\n".join(lines))
+
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            system=BRIEFING_SYSTEM,
+            messages=[{"role": "user", "content": "Portfolio data:\n" + "\n".join(parts) + "\n\nGenerate 3 actionable briefing insights."}],
+            max_tokens=800,
+        )
+        result = _parse_llm_json(response.content[0].text.strip())
+        return {"insights": result.get("insights", [])[:3], "ai_generated": True}
+
+    except Exception as exc:
+        logger.warning("Briefing generation failed: %s", exc)
+        return _briefing_fallback(arr_data, urgent_renewals, top_expansion, anomalies)
+
+
+# ─── Action Assets ─────────────────────────────────────────────────────────
+
+def generate_action_asset(
+    action_type: str,
+    intent: str,
+    account_name: str | None,
+    narrative: str,
+    bullets: list[str],
+    next_action: str,
+) -> dict:
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return {"error": True, "message": "Set ANTHROPIC_API_KEY to generate action assets."}
+
+    type_labels = {
+        "email": "a professional follow-up email",
+        "slack": "a Slack message for the team",
+        "crm_note": "a CRM activity note",
+    }
+    format_hints = {
+        "email": '{"subject":"...","body":"..."}',
+        "slack": '{"body":"..."}',
+        "crm_note": '{"body":"..."}',
+    }
+
+    try:
+        from anthropic import Anthropic
+        client = Anthropic(api_key=api_key)
+
+        context = (
+            f"Account: {account_name or 'Portfolio'}\n"
+            f"Situation: {narrative}\n"
+            f"Key data points: {'; '.join(bullets)}\n"
+            f"Recommended action: {next_action}"
+        )
+        type_label = type_labels.get(action_type, "a business document")
+        fmt = format_hints.get(action_type, '{"body":"..."}')
+
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            system=ACTION_SYSTEM,
+            messages=[{
+                "role": "user",
+                "content": f"Generate {type_label} for this CS context:\n{context}\n\nReturn JSON: {fmt}",
+            }],
+            max_tokens=600,
+        )
+        result = _parse_llm_json(response.content[0].text.strip())
+        return {"type": action_type, "content": result, "error": False}
+
+    except Exception as exc:
+        logger.warning("Action asset generation failed (%s): %s", action_type, exc)
+        return {"error": True, "message": f"Could not generate asset: {exc}"}
