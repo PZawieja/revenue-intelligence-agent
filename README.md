@@ -4,6 +4,8 @@
 
 Built for RevOps and CS teams managing B2B SaaS portfolios. Surfaces churn risk, flags usage anomalies, and generates copy-pasteable outreach assets — all from a single, fast, locally-running application.
 
+**Build log:** [goldlayer.dev/writing/revenue-intelligence-agent-ai-cs-copilot](https://goldlayer.dev/writing/revenue-intelligence-agent-ai-cs-copilot.html)
+
 ![Portfolio — Daily Briefing + KPI strip](docs/screenshots/dashboard.png)
 
 ![Accounts — risk table with drilldown panel](docs/screenshots/accounts.png)
