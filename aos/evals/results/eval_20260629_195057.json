@@ -1,0 +1,55 @@
+{
+  "run_at": "2026-06-29T19:50:57.715284+00:00",
+  "pass_rate": 1.0,
+  "passed": 5,
+  "total": 5,
+  "avg_tokens": 4722,
+  "avg_elapsed_seconds": 209.26,
+  "results": [
+    {
+      "case_id": "ri_001",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 3842,
+      "elapsed_seconds": 77.08,
+      "issues": []
+    },
+    {
+      "case_id": "ri_002",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 4392,
+      "elapsed_seconds": 84.93,
+      "issues": []
+    },
+    {
+      "case_id": "ri_003",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 4356,
+      "elapsed_seconds": 680.71,
+      "issues": []
+    },
+    {
+      "case_id": "ri_004",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 4128,
+      "elapsed_seconds": 73.8,
+      "issues": []
+    },
+    {
+      "case_id": "ri_005",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 4,
+      "tokens_used": 6893,
+      "elapsed_seconds": 129.81,
+      "issues": []
+    }
+  ]
+}

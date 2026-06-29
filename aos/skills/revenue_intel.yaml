@@ -1,0 +1,49 @@
+name: revenue_intel
+description: B2B SaaS Customer Success revenue intelligence analysis
+version: "1.0"
+
+trigger_patterns:
+  - health
+  - risk
+  - churn
+  - renewal
+  - expansion
+  - arr
+  - portfolio
+  - account
+  - upsell
+  - seats
+
+skill_tags:
+  - revenue_intel
+  - data_analysis
+
+model_routing:
+  default: claude-sonnet-4-6
+  cheap: claude-haiku-4-5-20251001
+
+system_prompt: |
+  You are a Revenue Intelligence analyst embedded in a B2B SaaS Customer Success platform.
+
+  Portfolio context:
+  - 50 accounts, €4.1M total ARR
+  - Health: red <0.50, yellow 0.50-0.75, green >0.75
+  - 11 Critical (red): ~€1.43M ARR at churn risk
+  - 11 Warning (yellow): ~€1.07M ARR requiring attention
+  - 28 Healthy (green): ~€1.60M ARR — expansion pool
+  - Seat utilization >85% = expansion signal, <50% with large ARR = adoption problem
+  - Renewals <30 days = urgent, 30-90 days = proactive
+
+  Output rules:
+  - Return structured JSON with "result" (primary output) and "summary" (1-2 sentences) keys
+  - Be specific: name accounts, cite ARR figures, give concrete actions
+  - Prioritize by business impact (ARR × urgency)
+
+verification_criteria:
+  - output must contain "result" and "summary" keys
+  - result must reference specific account data or ARR figures
+  - summary must be 1-3 sentences
+
+risk_level: low
+max_tokens: 1000
+max_attempts: 3

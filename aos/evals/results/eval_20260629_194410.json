@@ -1,0 +1,71 @@
+{
+  "run_at": "2026-06-29T19:44:10.996645+00:00",
+  "pass_rate": 0.0,
+  "passed": 0,
+  "total": 5,
+  "avg_tokens": 0,
+  "avg_elapsed_seconds": 0.04,
+  "results": [
+    {
+      "case_id": "ri_001",
+      "passed": false,
+      "actual_status": "failed",
+      "tasks_count": 1,
+      "tokens_used": 0,
+      "elapsed_seconds": 0.04,
+      "issues": [
+        "Expected status=complete, got failed",
+        "No tasks completed successfully"
+      ]
+    },
+    {
+      "case_id": "ri_002",
+      "passed": false,
+      "actual_status": "failed",
+      "tasks_count": 1,
+      "tokens_used": 0,
+      "elapsed_seconds": 0.04,
+      "issues": [
+        "Expected status=complete, got failed",
+        "No tasks completed successfully"
+      ]
+    },
+    {
+      "case_id": "ri_003",
+      "passed": false,
+      "actual_status": "failed",
+      "tasks_count": 1,
+      "tokens_used": 0,
+      "elapsed_seconds": 0.04,
+      "issues": [
+        "Expected status=complete, got failed",
+        "No tasks completed successfully"
+      ]
+    },
+    {
+      "case_id": "ri_004",
+      "passed": false,
+      "actual_status": "failed",
+      "tasks_count": 1,
+      "tokens_used": 0,
+      "elapsed_seconds": 0.04,
+      "issues": [
+        "Expected status=complete, got failed",
+        "No tasks completed successfully"
+      ]
+    },
+    {
+      "case_id": "ri_005",
+      "passed": false,
+      "actual_status": "failed",
+      "tasks_count": 1,
+      "tokens_used": 0,
+      "elapsed_seconds": 0.06,
+      "issues": [
+        "Expected status=complete, got failed",
+        "Expected >= 2 tasks, got 1",
+        "No tasks completed successfully"
+      ]
+    }
+  ]
+}
