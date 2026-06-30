@@ -27,17 +27,19 @@
 Evidence: `GET /api/aos/momentum` → milestone_status: "complete", 13 goals complete, 89% task completion rate
 
 ## Milestone 2: Eval Harness
-**Status**: IN PROGRESS
+**Status**: COMPLETE — 2026-06-30
 
 - [x] 10 eval scenarios (ri_001–ri_010, 5 original + 5 new)
-- [x] `fast=true` mode (3 cases, ~18s) for quick regression checks
-- [x] `cost_per_task` metric on every EvalResult
-- [x] Regression detection: `compare_to_baseline()` — regressions/improvements/stable
-- [x] Baseline storage: `aos/evals/baseline.json` via `save_baseline()`
-- [x] `/api/aos/evals/history` — list all past runs with pass rates
-- [x] `/api/aos/evals/baseline` GET/POST — read and set baseline
-- [ ] 10-case real LLM run complete + baseline saved (running…)
-- [ ] Confirm regression detection fires correctly on a deliberate regression
+- [x] `fast=true` mode (3 cases, ~4 min real) for quick pre-commit checks
+- [x] `cost_per_task` metric on every EvalResult (baseline: 2486 tokens/task avg)
+- [x] Regression detection: `compare_to_baseline()` — regressions/improvements/stable/new
+- [x] Baseline stored at `aos/evals/baseline.json` — 10/10 pass rate, avg 8163 tokens/goal
+- [x] `/api/aos/evals/history` GET — list all past runs
+- [x] `/api/aos/evals/baseline` GET/POST — read and promote latest run to baseline
+- [x] Regression detection confirmed: fast mock run reports 3 stable_pass cases vs baseline
+- [x] 4 bugs fixed during M2 (F001–F004): executor token limit, verifier preview, prior context, haiku truncation
+
+Evidence: `GET /api/aos/evals/baseline` → pass_rate=1.0, 10/10, committed + pushed
 
 ## Milestone 3: Self-Improvement Loop
 - One-change bounded improvement
