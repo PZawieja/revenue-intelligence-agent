@@ -252,7 +252,7 @@ def get_baseline():
 
 @router.post("/evals/baseline")
 def set_baseline():
-    from aos.evals.harness import list_eval_history, save_baseline, RESULTS_DIR
+    from aos.evals.harness import save_baseline, RESULTS_DIR
     import json
     files = sorted(RESULTS_DIR.glob("eval_*.json"), reverse=True)
     if not files:

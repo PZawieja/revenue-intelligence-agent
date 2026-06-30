@@ -69,7 +69,7 @@ def _llm_verify(
         response = client.messages.create(
             model="claude-haiku-4-5-20251001",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=512,
+            max_tokens=1024,
         )
         raw = response.content[0].text.strip()
         if raw.startswith("```"):

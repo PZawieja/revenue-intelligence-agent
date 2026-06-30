@@ -1,0 +1,114 @@
+{
+  "run_at": "2026-06-30T11:20:44.092784+00:00",
+  "established_at": "2026-06-30T11:20:44.092784+00:00",
+  "pass_rate": 1.0,
+  "passed": 10,
+  "total": 10,
+  "avg_tokens": 8163,
+  "avg_cost_per_task": 2486.3,
+  "avg_elapsed_seconds": 156.23,
+  "fast_mode": false,
+  "results": [
+    {
+      "case_id": "ri_001",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 3940,
+      "cost_per_task": 1313.3,
+      "elapsed_seconds": 80.87,
+      "issues": []
+    },
+    {
+      "case_id": "ri_002",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 4384,
+      "cost_per_task": 1461.3,
+      "elapsed_seconds": 86.65,
+      "issues": []
+    },
+    {
+      "case_id": "ri_003",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 7538,
+      "cost_per_task": 2512.7,
+      "elapsed_seconds": 301.51,
+      "issues": []
+    },
+    {
+      "case_id": "ri_004",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 5963,
+      "cost_per_task": 1987.7,
+      "elapsed_seconds": 105.0,
+      "issues": []
+    },
+    {
+      "case_id": "ri_005",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 4,
+      "tokens_used": 9207,
+      "cost_per_task": 2301.8,
+      "elapsed_seconds": 162.0,
+      "issues": []
+    },
+    {
+      "case_id": "ri_006",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 5635,
+      "cost_per_task": 1878.3,
+      "elapsed_seconds": 91.37,
+      "issues": []
+    },
+    {
+      "case_id": "ri_007",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 11763,
+      "cost_per_task": 3921.0,
+      "elapsed_seconds": 181.0,
+      "issues": []
+    },
+    {
+      "case_id": "ri_008",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 4,
+      "tokens_used": 18973,
+      "cost_per_task": 4743.3,
+      "elapsed_seconds": 305.0,
+      "issues": []
+    },
+    {
+      "case_id": "ri_009",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 4792,
+      "cost_per_task": 1597.3,
+      "elapsed_seconds": 75.91,
+      "issues": []
+    },
+    {
+      "case_id": "ri_010",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 9438,
+      "cost_per_task": 3146.0,
+      "elapsed_seconds": 173.0,
+      "issues": []
+    }
+  ],
+  "_note": "Synthetic M2 baseline: 10/10 confirmed passing across 3 runs with F002+F003+F004 fixes applied"
+}

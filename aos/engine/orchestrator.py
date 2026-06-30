@@ -154,7 +154,7 @@ def _finalize_success(goal: Goal, tasks: List[Task]) -> None:
     }
     goal.evidence.append({"type": "completion", "task_count": len(tasks)})
     update_goal(goal)
-    memory_entry = record_goal_success(goal, tasks)
+    record_goal_success(goal, tasks)
     record_learning(
         what_worked=f"Decomposed into {len(tasks)} tasks, all completed",
         what_failed=None,

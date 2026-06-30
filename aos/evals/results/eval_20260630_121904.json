@@ -1,0 +1,59 @@
+{
+  "run_at": "2026-06-30T12:19:04.244267+00:00",
+  "pass_rate": 1.0,
+  "passed": 3,
+  "total": 3,
+  "avg_tokens": 0,
+  "avg_cost_per_task": 0.0,
+  "avg_elapsed_seconds": 8.77,
+  "fast_mode": true,
+  "results": [
+    {
+      "case_id": "ri_001",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 2,
+      "tokens_used": 0,
+      "cost_per_task": 0.0,
+      "elapsed_seconds": 4.91,
+      "issues": []
+    },
+    {
+      "case_id": "ri_002",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 2,
+      "tokens_used": 0,
+      "cost_per_task": 0.0,
+      "elapsed_seconds": 8.71,
+      "issues": []
+    },
+    {
+      "case_id": "ri_003",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 2,
+      "tokens_used": 0,
+      "cost_per_task": 0.0,
+      "elapsed_seconds": 12.71,
+      "issues": []
+    }
+  ],
+  "regression_report": {
+    "status": "ok",
+    "pass_rate_delta": 0.0,
+    "avg_tokens_delta": -8163,
+    "regression_count": 0,
+    "improvement_count": 0,
+    "regressions": [],
+    "improvements": [],
+    "stable_pass": [
+      "ri_001",
+      "ri_002",
+      "ri_003"
+    ],
+    "stable_fail": [],
+    "new_cases": [],
+    "baseline_run_at": "2026-06-30T11:20:44.092784+00:00"
+  }
+}
