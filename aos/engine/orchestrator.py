@@ -1,10 +1,10 @@
 from __future__ import annotations
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 from .schemas import Goal, GoalStatus, Task, TaskStatus
 from .task_store import (
-    create_goal, create_task, get_goal, get_task,
+    create_task, get_goal, get_task,
     list_tasks, update_goal, update_task, record_metric,
 )
 from .planner import decompose_goal

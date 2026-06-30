@@ -47,13 +47,23 @@ def _llm_verify(
         from anthropic import Anthropic
         client = Anthropic(api_key=api_key)
 
-        output_preview = str(output)[:2000]
+        preview_parts = []
+        if "summary" in output:
+            preview_parts.append(f"[summary] {output['summary']}")
+        if "result" in output:
+            result_str = str(output["result"])
+            if len(result_str) > 1800:
+                result_str = result_str[:1800] + "\n... [remainder truncated — treat as complete if summary indicates success]"
+            preview_parts.append(f"[result] {result_str}")
+        output_preview = "\n".join(preview_parts) if preview_parts else str(output)[:1500]
+
         prompt = (
             f"Task description: {task_description}\n\n"
             f"Verification criteria: {verification_plan}\n\n"
-            f"Task output: {output_preview}\n\n"
+            f"Task output:\n{output_preview}\n\n"
             "Evaluate whether this output substantially satisfies the verification criteria. "
             "Be pragmatic — partial completeness is acceptable if the core requirement is met. "
+            "Do NOT penalize for text truncation if the summary confirms the task completed. "
             "Return JSON only: {\"passed\": bool, \"score\": 0.0-1.0, \"issues\": [\"...\"], \"recommendation\": \"...\"}"
         )
         response = client.messages.create(

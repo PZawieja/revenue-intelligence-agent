@@ -151,7 +151,7 @@ def health():
 
 @router.post("/run/mock")
 def quick_run_mock(req: GoalRequest):
-    from aos.engine.schemas import Goal as _Goal, Task, RiskLevel
+    from aos.engine.schemas import Goal as _Goal
     from aos.engine.task_store import create_goal as _cg, create_task
     from aos.engine.orchestrator import _execute_and_verify, _finalize_success, _finalize_failure, _goal_result
     from aos.evals.mock_executor import mock_execute_task, mock_decompose_goal
@@ -194,38 +194,69 @@ def quick_run_mock(req: GoalRequest):
     return _goal_result(_gg(goal.id), all_tasks)
 
 
+def _mock_run_fn():
+    from aos.engine.task_store import create_task as _ct, update_goal as _ug
+    from aos.evals.mock_executor import mock_execute_task, mock_decompose_goal
+    import aos.engine.executor as _exec
+    from aos.engine.orchestrator import _execute_and_verify, _finalize_success, _goal_result
+    from aos.engine.task_store import list_tasks as _lt, get_goal as _gg
+    from aos.engine.schemas import GoalStatus
+
+    original_exec = _exec.execute_task
+    _exec.execute_task = mock_execute_task
+
+    def mock_run_goal(goal_id: str):
+        goal = _gg(goal_id)
+        tasks = mock_decompose_goal(goal)
+        for t in tasks:
+            _ct(t)
+        goal.task_ids = [t.id for t in tasks]
+        goal.status = GoalStatus.running
+        _ug(goal)
+        for task in tasks:
+            _execute_and_verify(task, goal.description, [])
+        all_tasks = _lt(goal_id=goal.id)
+        _finalize_success(goal, all_tasks)
+        return _goal_result(_gg(goal_id), all_tasks)
+
+    return mock_run_goal, original_exec, _exec
+
+
 @router.post("/evals/run")
-def run_evals(mock: bool = True):
-    from aos.evals.harness import run_eval_suite, REVENUE_INTEL_EVALS
+def run_evals(mock: bool = True, fast: bool = False):
+    from aos.evals.harness import run_eval_suite
     if mock:
-        from aos.engine.schemas import Goal as _Goal
-        from aos.engine.task_store import create_goal as _cg, create_task as _ct, update_goal as _ug
-        from aos.evals.mock_executor import mock_execute_task, mock_decompose_goal
-        import aos.engine.executor as _exec
-        from aos.engine.orchestrator import _execute_and_verify, _finalize_success, _goal_result
-        from aos.engine.task_store import list_tasks as _lt, get_goal as _gg
-        from aos.engine.schemas import GoalStatus
-
-        original_exec = _exec.execute_task
-        _exec.execute_task = mock_execute_task
-
-        def mock_run_goal(goal_id: str):
-            goal = _gg(goal_id)
-            tasks = mock_decompose_goal(goal)
-            for t in tasks:
-                _ct(t)
-            goal.task_ids = [t.id for t in tasks]
-            goal.status = GoalStatus.running
-            _ug(goal)
-            for task in tasks:
-                _execute_and_verify(task, goal.description, [])
-            all_tasks = _lt(goal_id=goal.id)
-            _finalize_success(goal, all_tasks)
-            return _goal_result(_gg(goal_id), all_tasks)
-
-        result = run_eval_suite(run_goal_fn=mock_run_goal)
+        run_fn, original_exec, _exec = _mock_run_fn()
+        result = run_eval_suite(run_goal_fn=run_fn, fast=fast)
         _exec.execute_task = original_exec
     else:
         from aos.engine.orchestrator import run_goal as _run
-        result = run_eval_suite(run_goal_fn=_run)
+        result = run_eval_suite(run_goal_fn=_run, fast=fast)
     return result
+
+
+@router.get("/evals/history")
+def eval_history(limit: int = 20):
+    from aos.evals.harness import list_eval_history
+    return list_eval_history(limit=limit)
+
+
+@router.get("/evals/baseline")
+def get_baseline():
+    from aos.evals.harness import load_baseline
+    baseline = load_baseline()
+    if not baseline:
+        raise HTTPException(status_code=404, detail="No baseline set. Run POST /api/aos/evals/baseline to establish one.")
+    return baseline
+
+
+@router.post("/evals/baseline")
+def set_baseline():
+    from aos.evals.harness import list_eval_history, save_baseline, RESULTS_DIR
+    import json
+    files = sorted(RESULTS_DIR.glob("eval_*.json"), reverse=True)
+    if not files:
+        raise HTTPException(status_code=404, detail="No eval runs found. Run an eval first.")
+    latest = json.loads(files[0].read_text())
+    save_baseline(latest)
+    return {"status": "baseline_saved", "pass_rate": latest["pass_rate"], "run_at": latest["run_at"]}

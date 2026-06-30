@@ -1,11 +1,10 @@
 from __future__ import annotations
 import json
 import logging
-import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from .schemas import Task, TaskStatus
+from .schemas import Task
 from .planner import SKILL_SYSTEM_PROMPTS, DEFAULT_SKILL_SYSTEM, _get_api_client
 
 logger = logging.getLogger(__name__)
@@ -67,8 +66,12 @@ def execute_task(
     if prior_task_outputs:
         context_parts.append("Prior task outputs:")
         for i, output in enumerate(prior_task_outputs):
-            summary = output.get("summary", str(output)[:300])
-            context_parts.append(f"  Task {i+1}: {summary}")
+            summary = output.get("summary", "")
+            result_preview = str(output.get("result", ""))[:800]
+            entry = f"  Task {i+1} summary: {summary}"
+            if result_preview:
+                entry += f"\n  Task {i+1} result excerpt: {result_preview}"
+            context_parts.append(entry)
 
     context_parts.append(
         "\nExecute this task and return structured JSON output. "
@@ -80,7 +83,7 @@ def execute_task(
             model="claude-sonnet-4-6",
             system=system,
             messages=[{"role": "user", "content": "\n\n".join(context_parts)}],
-            max_tokens=1000,
+            max_tokens=2500,
         )
         raw = response.content[0].text.strip()
         output = _parse_output(raw)

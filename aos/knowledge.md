@@ -32,6 +32,14 @@
 
 ## Lessons Learned
 
+**2026-06-30 M2 eval run**:
+- Executor max_tokens=1000 is insufficient for tasks covering 5+ items (accounts, QBR sections, etc.) — fixed to 2500
+- Verifier bug: `str(output)[:2000]` produces Python dict repr; LLM judge sees `'result': 'text cut here'` and reports truncation even when output is complete — fixed to structured `[summary]` + `[result truncated at 1800 chars with explicit note]`
+- Executor prior context bug: only passed `summary` (2 sentences) to downstream tasks; validation tasks had nothing to validate — fixed to pass summary + first 800 chars of result
+- `cost_per_task` metric in tokens: simple analysis ~1300-1500, complex multi-item ~2000-2500, multi-task goals ~4000+
+- ri_005 (CS action plan with validation task) is the hardest case — planner generates a "validate the plan" task that needs full prior output to work; combination of F003 + F004 fixes should resolve it
+- Regression detection unit-tested: correctly classifies regressions, improvements, stable-pass, stable-fail, new-cases
+
 **2026-06-29 M1 build**:
 - Python 3.9 requires `Optional[X]` not `X | None`; list comprehension conditional syntax is `[x for x in l if (condition)]` not `[x for x in l if a if b else c]`
 - Eval harness must check output_summary string content, not dict key names in result dict

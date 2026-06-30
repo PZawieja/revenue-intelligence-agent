@@ -1,0 +1,123 @@
+{
+  "run_at": "2026-06-29T21:25:44.800944+00:00",
+  "pass_rate": 0.5,
+  "passed": 5,
+  "total": 10,
+  "avg_tokens": 6128,
+  "avg_cost_per_task": 1891.5,
+  "avg_elapsed_seconds": 126.64,
+  "fast_mode": false,
+  "results": [
+    {
+      "case_id": "ri_001",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 3940,
+      "cost_per_task": 1313.3,
+      "elapsed_seconds": 80.87,
+      "issues": []
+    },
+    {
+      "case_id": "ri_002",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 4384,
+      "cost_per_task": 1461.3,
+      "elapsed_seconds": 86.65,
+      "issues": []
+    },
+    {
+      "case_id": "ri_003",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 7538,
+      "cost_per_task": 2512.7,
+      "elapsed_seconds": 301.51,
+      "issues": []
+    },
+    {
+      "case_id": "ri_004",
+      "passed": false,
+      "actual_status": "failed",
+      "tasks_count": 3,
+      "tokens_used": 5345,
+      "cost_per_task": 1781.7,
+      "elapsed_seconds": 91.82,
+      "issues": [
+        "Expected status=complete, got failed"
+      ]
+    },
+    {
+      "case_id": "ri_005",
+      "passed": false,
+      "actual_status": "failed",
+      "tasks_count": 4,
+      "tokens_used": 8203,
+      "cost_per_task": 2050.8,
+      "elapsed_seconds": 160.71,
+      "issues": [
+        "Expected status=complete, got failed"
+      ]
+    },
+    {
+      "case_id": "ri_006",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 5635,
+      "cost_per_task": 1878.3,
+      "elapsed_seconds": 91.37,
+      "issues": []
+    },
+    {
+      "case_id": "ri_007",
+      "passed": false,
+      "actual_status": "failed",
+      "tasks_count": 3,
+      "tokens_used": 4476,
+      "cost_per_task": 1492.0,
+      "elapsed_seconds": 80.52,
+      "issues": [
+        "Expected status=complete, got failed",
+        "No tasks completed successfully"
+      ]
+    },
+    {
+      "case_id": "ri_008",
+      "passed": false,
+      "actual_status": "failed",
+      "tasks_count": 4,
+      "tokens_used": 9940,
+      "cost_per_task": 2485.0,
+      "elapsed_seconds": 157.95,
+      "issues": [
+        "Expected status=complete, got failed"
+      ]
+    },
+    {
+      "case_id": "ri_009",
+      "passed": true,
+      "actual_status": "complete",
+      "tasks_count": 3,
+      "tokens_used": 4792,
+      "cost_per_task": 1597.3,
+      "elapsed_seconds": 75.91,
+      "issues": []
+    },
+    {
+      "case_id": "ri_010",
+      "passed": false,
+      "actual_status": "failed",
+      "tasks_count": 3,
+      "tokens_used": 7028,
+      "cost_per_task": 2342.7,
+      "elapsed_seconds": 139.08,
+      "issues": [
+        "Expected status=complete, got failed"
+      ]
+    }
+  ]
+}

@@ -1,7 +1,6 @@
 from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-import json
 
 
 MOCK_OUTPUTS: Dict[str, Dict[str, Any]] = {
@@ -60,7 +59,6 @@ def mock_execute_task(
     goal_description: str,
     prior_task_outputs: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
-    from aos.engine.schemas import Task
     skill = (task.skill_tags or ["default"])[0]
     output = dict(MOCK_OUTPUTS.get(skill, MOCK_OUTPUTS["default"]))
     output["_task_title"] = task.title

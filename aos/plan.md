@@ -27,10 +27,17 @@
 Evidence: `GET /api/aos/momentum` → milestone_status: "complete", 13 goals complete, 89% task completion rate
 
 ## Milestone 2: Eval Harness
-- 10 scenario tests (revenue intel domain)
-- Pass rate tracking
-- Regression detection vs baseline
-- Cost-per-task tracking
+**Status**: IN PROGRESS
+
+- [x] 10 eval scenarios (ri_001–ri_010, 5 original + 5 new)
+- [x] `fast=true` mode (3 cases, ~18s) for quick regression checks
+- [x] `cost_per_task` metric on every EvalResult
+- [x] Regression detection: `compare_to_baseline()` — regressions/improvements/stable
+- [x] Baseline storage: `aos/evals/baseline.json` via `save_baseline()`
+- [x] `/api/aos/evals/history` — list all past runs with pass rates
+- [x] `/api/aos/evals/baseline` GET/POST — read and set baseline
+- [ ] 10-case real LLM run complete + baseline saved (running…)
+- [ ] Confirm regression detection fires correctly on a deliberate regression
 
 ## Milestone 3: Self-Improvement Loop
 - One-change bounded improvement
